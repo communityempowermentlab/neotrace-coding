@@ -1,0 +1,1952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>NeoTRACE — coding sheet</title>
+<style>
+  :root{
+    --bg:#eef2f7; --panel:#ffffff; --ink:#1c2530; --muted:#5b6b7b; --line:#e4e9f1; --line-soft:#eef1f6;
+    --accent:#2b6cb0; --accent-soft:#e8f0fb; --accent-deep:#1f5188;
+    --shadow-sm:0 1px 2px rgba(23,50,82,.06);
+    --shadow:0 1px 2px rgba(23,50,82,.04), 0 8px 24px rgba(23,50,82,.06);
+    /* band colours */
+    --b-vlikely:#1b7837; --b-likely:#7fbf7b; --b-borderline:#f0c419;
+    --b-unlikely:#e08e45; --b-vunlikely:#c0392b;
+    --na:#9aa7b2; --offtarget:#6b3fa0;
+    --pass:#1b7837; --fail:#c0392b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);font-size:15px;line-height:1.55;min-height:100vh;
+    background:
+      radial-gradient(1200px 460px at 84% -12%, rgba(43,108,176,.08), rgba(43,108,176,0) 62%),
+      radial-gradient(900px 380px at -4% 3%, rgba(46,125,79,.05), rgba(46,125,79,0) 60%),
+      linear-gradient(180deg,#e7edf5 0%, #eef2f7 340px);
+    background-attachment:fixed}
+  header{background:linear-gradient(180deg,#ffffff,#fbfcff);border-bottom:1px solid var(--line);
+    padding:18px 24px;box-shadow:var(--shadow-sm)}
+  header h1{margin:0;font-size:23px;letter-spacing:-.015em;line-height:1.25}
+  header p{margin:6px 0 0;color:var(--muted);font-size:14px;line-height:1.5;max-width:900px}
+  .wrap{max-width:1480px;margin:0 auto;padding:16px 28px 60px}
+  .panel>p, .panel>.small{max-width:110ch}
+  .tabs{display:flex;gap:5px;flex-wrap:wrap;margin:18px 0 0;border-bottom:1px solid var(--line)}
+  .tab{padding:9px 16px;cursor:pointer;border:1px solid transparent;border-bottom:none;
+    border-radius:9px 9px 0 0;color:var(--muted);font-weight:600;font-size:14.5px;transition:background .15s,color .15s}
+  .tab:hover{background:rgba(255,255,255,.55);color:var(--ink)}
+  .tab.active{background:var(--panel);border-color:var(--line);color:var(--accent-deep);
+    box-shadow:inset 0 3px 0 var(--accent);margin-bottom:-1px}
+  .view{display:none}
+  .view.active{display:block;animation:fade .2s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px 22px;
+    margin-bottom:18px;box-shadow:var(--shadow)}
+  .panel h2{margin:0 0 8px;font-size:21px;line-height:1.3;letter-spacing:-.01em}
+  .panel h3{margin:24px 0 10px;font-size:17px;color:var(--accent);letter-spacing:-.005em}
+  .controls{display:flex;flex-wrap:wrap;gap:18px;align-items:center}
+  .toggle{display:flex;align-items:center;gap:6px;font-size:13px;background:var(--accent-soft);
+    border-radius:6px;padding:5px 9px}
+  .toggle input{margin:0}
+  label.sel{display:flex;flex-direction:column;gap:3px;font-size:13px;font-weight:600}
+  select{padding:6px 8px;border:1px solid var(--line);border-radius:5px;font-size:14px;background:#fff}
+  table{border-collapse:collapse;width:100%;font-size:13px;margin-top:6px}
+  th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+  th{background:#eef2f6;font-weight:600;position:sticky;top:0}
+  .grid td.cell{text-align:center;cursor:pointer;font-weight:600;min-width:74px}
+  .grid td.cell:hover{outline:2px solid var(--accent)}
+  .band-VL{background:var(--b-vlikely);color:#fff}
+  .band-L{background:var(--b-likely);color:#13321b}
+  .band-B{background:var(--b-borderline);color:#4a3c00}
+  .band-U{background:var(--b-unlikely);color:#3a1c00}
+  .band-VU{background:var(--b-vunlikely);color:#fff}
+  .band-3C{background:var(--b-vlikely);color:#fff}
+  .band-3S{background:var(--b-borderline);color:#4a3c00}
+  .band-3F{background:var(--b-vunlikely);color:#fff}
+  .bandsub{opacity:.82;font-size:11px;margin-top:2px}
+  /* readable measure + comfortable leading for the long-form reading tabs */
+  #guideHost,#scienceHost{max-width:900px}
+  #guideHost p,#scienceHost p,#guideHost li,#scienceHost li{font-size:15px;line-height:1.65}
+  #guideHost h3,#scienceHost h3{margin-top:28px}
+  .lvlmark{font-weight:700}
+  /* cliff cells: HUE = Miller rung; SHADE = likelihood (C high / S borderline / F low) */
+  /* Palette B — ordered warm→green ramp (brown → orange → amber → green). No red:
+     reaching only "Knows" is not a failure, so it earns a neutral brown, not an alarm colour.
+     Climb order is read by hue progression; cells also carry text labels (CVD-robust). */
+  .rg-Knows-C{background:#6e4327;color:#fff}
+  .rg-Knows-S{background:#7b4a2e;color:#fff}
+  .rg-Knows-F{background:#d9c3b3;color:#3a2114}
+  .rg-KnowsHow-C{background:#a96a23;color:#fff}
+  .rg-KnowsHow-S{background:#b9772d;color:#fff}
+  .rg-KnowsHow-F{background:#e8cfa8;color:#4a3208}
+  .rg-ShowsHow-C{background:#cf9628;color:#3a2700}
+  .rg-ShowsHow-S{background:#e0a93b;color:#3a2700}
+  .rg-ShowsHow-F{background:#f3ddb0;color:#4a3300}
+  .rg-Does-C{background:#2e7d4f;color:#fff}
+  .rg-Does-S{background:#5db98a;color:#0c3a22}
+  .rg-Does-F{background:#8ec9a0;color:#0c3a22}
+  .rg-referred{background:repeating-linear-gradient(45deg,#eceff1,#eceff1 6px,#dfe4e7 6px,#dfe4e7 12px);color:#5a6b75}
+  .na{background:#fbfcfd;color:#9aa7b2;border:1px dashed #cfd8de !important;font-style:italic}
+  .offtarget{position:relative}
+  .offtarget::after{content:"◇ off-target";position:absolute;top:1px;right:2px;font-size:8px;
+    color:var(--offtarget);font-weight:700}
+  .robust-flag{font-size:9px;display:block;opacity:.8}
+  .legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:12px}
+  .legend span{padding:2px 8px;border-radius:4px}
+  .pgtitle{font-weight:700;background:#dfe6ee;text-align:center}
+  .stepcol{background:#f4f7fa;font-weight:600;white-space:nowrap}
+  .muted{color:var(--muted)}
+  .small{font-size:12.5px}
+  .pass{color:var(--pass);font-weight:700}
+  .fail{color:var(--fail);font-weight:700}
+  .flag{color:var(--offtarget);font-weight:600}
+  code{background:#eef2f6;padding:1px 4px;border-radius:3px;font-size:12px}
+  .refs{font-size:13px;line-height:1.6;padding-left:22px} .refs li{margin-bottom:7px}
+  .cbinfo{display:inline-block;cursor:pointer;color:var(--accent);font-weight:700;font-size:13px;
+    border-radius:50%;width:16px;height:16px;line-height:16px;text-align:center;user-select:none}
+  .cbinfo:hover{background:var(--accent-soft)}
+  .drill{font-size:14px}
+  .drill .rung{border-left:3px solid var(--accent);padding:6px 10px;margin:6px 0;background:#fafcfe}
+  .drill .rec{background:#fff6e6;border-left:3px solid var(--b-borderline);padding:6px 10px;margin:6px 0}
+  .pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:700}
+  .pill.C{background:var(--b-vlikely);color:#fff}
+  .pill.S{background:var(--b-borderline);color:#4a3c00}
+  .pill.F{background:var(--b-vunlikely);color:#fff}
+  .pill.SK{background:var(--na);color:#fff}
+  .auditbar{height:10px;background:var(--accent);border-radius:3px;display:inline-block;vertical-align:middle}
+  .kv{display:grid;grid-template-columns:210px 1fr;gap:3px 12px;font-size:13px;margin:4px 0}
+  .kv div:nth-child(odd){color:var(--muted)}
+  .tag{font-size:10px;padding:1px 5px;border-radius:3px;background:#eef2f6;color:var(--muted)}
+  .tag.naflag{background:#f3e8ff;color:var(--offtarget)}
+  .tag.prov{background:#fff3d6;color:#8a6d00}
+  /* ---- foreground polish (2026-07-06) ---- */
+  button{font-family:inherit;font-size:13.5px;font-weight:600;color:var(--accent-deep);
+    background:var(--accent-soft);border:1px solid #cfdef2;border-radius:8px;padding:7px 13px;
+    cursor:pointer;transition:background .15s,box-shadow .15s,transform .04s}
+  button:hover{background:#dbe8fa;box-shadow:var(--shadow-sm)}
+  button:active{transform:translateY(1px)}
+  select,input[type=number],input[type=text]{transition:border-color .12s,box-shadow .12s}
+  select:focus,input:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  th{z-index:2}
+  .toggle{border:1px solid #d7e3f3}
+  .tag{border:1px solid rgba(30,60,95,.05)}
+  .legend span{border:1px solid rgba(30,60,95,.06)}
+  .exlink{color:var(--accent);cursor:pointer;font-size:11px;font-weight:600;border:1px solid #cfdef2;background:var(--accent-soft);border-radius:4px;padding:0 6px;white-space:nowrap}
+  .exlink:hover{background:#dbe8fa}
+  /* per-step coding table: fit all columns to the card width, no horizontal scroll */
+  .codetbl{table-layout:fixed;width:100%}
+  .codetbl th,.codetbl td{padding:5px 6px;font-size:12px;vertical-align:middle;overflow:hidden}
+  .codetbl th{line-height:1.25}
+  .codetbl select,.codetbl input[type=number]{width:100%;max-width:100%;font-size:12px;padding:4px 4px;
+    border-radius:5px;text-overflow:ellipsis}
+  .codetbl .cbinfo{width:14px;height:14px;line-height:14px;font-size:11px}
+  .codetbl .tag{font-size:9.5px;padding:0 3px}
+  ::selection{background:var(--accent-soft)}
+  ::-webkit-scrollbar{height:10px;width:10px}
+  ::-webkit-scrollbar-thumb{background:#cdd6e0;border-radius:6px;border:2px solid transparent;background-clip:padding-box}
+  ::-webkit-scrollbar-thumb:hover{background:#b7c2cf;background-clip:padding-box}
+</style>
+</head>
+<body>
+<header>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:28px;flex-wrap:wrap">
+   <div style="flex:1 1 420px;min-width:280px">
+  <h1>NeoTRACE: Trainability of neonatal Resuscitation Algorithms across CadrEs</h1>
+  <p><b>Coding sheet.</b> Code a neonatal-resuscitation programme against the fixed canonical steps F0–F10, reading only from the programme's own materials (wall chart, facilitator manual, training plan). This build is for coding only: it captures your ratings and leaves the scoring to the analysis engine. Open the worked examples and the per-step coding rules on this page as you go; source materials are under <b>Reference documents</b>. Your work stays in your browser; enter your Rater ID and use <b>Save</b> to keep or return your file.</p>
+   </div>
+   <div style="align-self:stretch;width:1px;background:var(--line);flex-shrink:0"></div>
+   <div style="display:flex;align-items:flex-start;gap:24px;flex-shrink:0">
+     <img src="logo_CEL.png" alt="CEL" style="height:52px;width:auto" onerror="this.style.display='none'">
+     <img src="logo_ICMR.png" alt="ICMR" style="height:42px;width:auto;margin-top:20px" onerror="this.style.display='none'">
+   </div>
+  </div>
+</header>
+<div class="wrap">
+
+  <div class="controls" style="align-items:center;padding:8px 0">
+    <span class="small muted"><b>How to use:</b>&nbsp; enter your Rater ID, code each canonical step F0–F10 from the programme's own materials, then <b>Save</b> your file. Source materials are under <b>Reference documents</b>.</span>
+    <span style="margin-left:auto;display:flex;align-items:center;gap:9px">
+      <label class="small muted" style="display:flex;align-items:center;gap:5px">Rater ID <input type="text" id="raterId" placeholder="name / initials" style="width:132px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:13px"></label>
+      <button onclick="exportJSON()">⤓ Save (JSON)</button>
+      <button onclick="document.getElementById('importFile').click()">⤒ Load</button>
+      <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="if(this.files[0])importJSON(this.files[0]);this.value=''">
+    </span>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-v="editprog">Coding sheet</div>
+    <div class="tab" data-v="refs">Reference documents</div>
+  </div>
+
+  <div id="view-editprog" class="view active">
+    <div class="panel">
+      <h2>Code a programme</h2>
+      <p class="small muted">Pick a preset (NSSK / HBB / NRP) or start blank, then code this programme's dials against the fixed canonical steps F0–F10. Each step carries its own clinical constants (emergency / decay / <span class="tag">list</span> = multi-item checklist / <span class="tag">adv</span> = advanced procedure) — you set the programme-specific dials: cognitive load, motor/perceptual demand, decidability, integrity, scope, what's on the aid, and practice intensity. Below the table, set the whole-aid form and the reinforcement cadence. Everything updates the cliff live.</p>
+      <div id="progEditHost"></div>
+    </div>
+  </div>
+
+  <div id="view-editcadre" class="view">
+    <div class="panel">
+      <h2>Cadre profiles</h2>
+      <div id="cadreEditHost"></div>
+    </div>
+  </div>
+
+  <div id="view-guide" class="view">
+    <div class="panel"><div id="guideHost"></div></div>
+  </div>
+
+  <div id="view-science" class="view">
+    <div class="panel"><div id="scienceHost"></div></div>
+  </div>
+
+  <div id="view-refs" class="view">
+    <div class="panel" style="max-width:900px">
+      <h2>Reference documents</h2>
+      <p class="muted">Links to the publicly available source materials for the programmes appraised here, and to the current international standard. All open on the official sites. NRP materials are proprietary and are not reproduced here.</p>
+
+      <h3>NSSK — Navjaat Shishu Suraksha Karyakram (Government of India)</h3>
+      <ul>
+        <li><a href="NSSK_Resource_Manual_2020.pdf" target="_blank" rel="noopener">NSSK Resource Manual, 2020 (PDF)</a></li>
+        <li><a href="NSSK_Flipchart.pdf" target="_blank" rel="noopener">NSSK Flip Chart (PDF)</a></li>
+        <li><a href="NSSK_flowchart.png" target="_blank" rel="noopener">NSSK bedside algorithm (flowchart image)</a></li>
+      </ul>
+      <p class="small muted">Official GoI materials, Child Health Division, Ministry of Health &amp; Family Welfare (2020 revision), hosted alongside this portal. Keep these files in the same folder as <code>TRACE_portal.html</code> so the links resolve.</p>
+
+      <h3>HBB — Helping Babies Breathe (American Academy of Pediatrics)</h3>
+      <ul>
+        <li><a href="https://www.aap.org/en/aap-global/helping-babies-survive/our-programs/helping-babies-breathe/" target="_blank" rel="noopener">AAP — Helping Babies Breathe programme</a></li>
+        <li><a href="https://www.aap.org/en/aap-global/helping-babies-survive/trainer-tools/course-materials/" target="_blank" rel="noopener">AAP — course materials (Action Plan, Flip Chart, Provider Guide; free download)</a></li>
+        <li><a href="https://internationalresources.aap.org/" target="_blank" rel="noopener">AAP International Resources (free translations)</a></li>
+      </ul>
+
+      <h3>Current international standard</h3>
+      <ul>
+        <li><a href="https://ilcor.org/uploads/NLS-2025-COSTR-Full-Chapter.pdf" target="_blank" rel="noopener">ILCOR 2025 — Neonatal Life Support CoSTR (full chapter, PDF)</a></li>
+        <li><a href="https://ilcor.org/publications" target="_blank" rel="noopener">ILCOR — publications and consensus on science</a></li>
+        <li><a href="https://www.ahajournals.org/doi/10.1161/CIR.0000000000001367" target="_blank" rel="noopener">AHA / AAP 2025 Guidelines, Part 5: Neonatal Resuscitation (Circulation)</a></li>
+        <li><a href="https://cpr.heart.org/en/resuscitation-science/cpr-and-ecc-guidelines/neonatal-resuscitation" target="_blank" rel="noopener">AHA — Part 5: Neonatal Resuscitation (guidelines hub)</a></li>
+      </ul>
+
+      <h3>NRP — Neonatal Resuscitation Program (American Academy of Pediatrics)</h3>
+      <p>NRP materials are proprietary to the AAP and require purchase or an AAP / NRP login. The official links on the AAP site:</p>
+      <ul>
+        <li><a href="https://www.aap.org/en/pedialink/neonatal-resuscitation-program/" target="_blank" rel="noopener">AAP — Neonatal Resuscitation Program (programme home)</a></li>
+        <li><a href="https://www.aap.org/en/pedialink/neonatal-resuscitation-program/nrp-9th-edition-updates/" target="_blank" rel="noopener">NRP 9th Edition updates</a></li>
+        <li><a href="https://www.aap.org/en/catalog/categories/neonatal-resuscitation-program-nrp/textbook-of-neonatal-resuscitation-9th-edition-paperback/" target="_blank" rel="noopener">Textbook of Neonatal Resuscitation, 9th edition (shopAAP — purchase)</a></li>
+        <li><a href="https://www.aap.org/en/shopaap/shop-by-topic/neonatal-resuscitation-program/" target="_blank" rel="noopener">shopAAP — all NRP materials</a></li>
+        <li><a href="https://www.aap.org/en/pedialink/neonatal-resuscitation-program/neonatal-resuscitation-guidelines/" target="_blank" rel="noopener">NRP — neonatal resuscitation guidelines</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div id="view-grid" class="view">
+    <div class="panel">
+      <h2>Results — cliff for the programme evaluated</h2>
+      <div class="controls" style="margin-bottom:8px">
+        <label class="sel"><b>Programme</b> <select id="gridProg" onchange="onGridProgChange(this.value)"></select></label>
+        <label class="sel">Time <select id="timept" onchange="refreshAll()">
+          <option value="0">course-end (t=0)</option>
+          <option value="6">≈ 6 months</option>
+        </select></label>
+        <span class="small muted">Coded under <b>“Code a programme”</b>; cadres under <b>“Cadres”</b>.</span>
+      </div>
+      <p class="small muted">Each cell = the highest <b>Miller rung reached</b> at the selected time, for this programme × each cadre × each step. Knowledge available on a usable aid or from clear-and-aided decisions <b>rides up</b> to a low-fidelity Does; a <b>skill deficit binds at Shows-how</b> (no aid carries the hands or the eyes); a failed knowledge/decision stalls at Knows / Knows-how. <b>Colour = which rung</b>; the <b>high/low shade applies only at Does</b> (high = clears reliably; low = reached but strained / not-yet-automatic / knowledge slipping). <b>Refer</b> (hatched) = out of this cadre's scope, not a failure. Click a cell for the per-rung drill-down.</p>
+      <div id="gridHost"></div>
+      <div class="legend" id="gridLegend"></div>
+    </div>
+    <div class="panel">
+      <h2>Recommendations — design levers for the programme(s) evaluated</h2>
+      <p class="small muted">For every step that falls short of a reliable Does for some cadre, the controllable lever (at the current time point). The lever is the honest one — demand, the aid, practice, or reinforcement — never "raise the cadre's capacity".</p>
+      <div id="recsHost"></div>
+    </div>
+  </div>
+
+  <div id="view-drill" class="view">
+    <div class="panel">
+      <h2>Per-cell drill-down</h2>
+      <div class="controls">
+        <label class="sel">Programme<select id="d_prog"></select></label>
+        <label class="sel">Cadre<select id="d_cadre"></select></label>
+        <label class="sel">Step<select id="d_step"></select></label>
+      </div>
+      <div id="drillHost" class="drill" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <div id="view-inputs" class="view">
+    <div class="panel">
+      <h2>Encoded inputs (transcription check)</h2>
+      <p class="small muted">Values encoded back from the JS data layer, for checking against the coding files. <span class="tag naflag">N/A</span> = not applicable / referred-out. <span class="tag prov">prov</span> = provisional (deployment / visual pass pending). Indeterminate cells are flagged in text.</p>
+      <h3>Cadre profiles (TRACE_cadre_profiles.md) + derived quantities (§1)</h3>
+      <div id="cadreInputs"></div>
+      <h3>Step-constants (TRACE_coding_constants_and_visual.md §A)</h3>
+      <div id="constInputs"></div>
+      <h3>Per-programme step coding (A–J + job-aid + post-plan)</h3>
+      <div id="progInputs"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+"use strict";
+/* =====================================================================
+   TRACE engine — single-file implementation of TRACE_derivation_rules.md
+   Functions mirror the derivation-rule section names so the JS can be
+   checked against the spec and re-implemented in Python.
+   ===================================================================== */
+
+/* ---------- §0 Encodings ---------- */
+const LVL = {Low:1, Mod:2, High:3};            // demand/capacity levels
+const OUT = {Fails:0, Strained:1, Clears:2};   // per-rung outcome
+// algorithm quality: clear=2 partial=1 ambiguous/vague=0
+const QUAL = {Clear:2, Partial:1, Ambiguous:0, Vague:0};
+// job-aid bedside value: on-aid=2 manual-only=1 absent=0 ; "N/A"=skip
+const AIDVAL = {"On-aid":2,"Manual-only":1,"Absent":0};
+// pedagogy practice intensity: mastery=2 practised-no-standard=1 lectured-only=0
+const PRAC = {"Practised-to-mastery":2,"Practised-no-standard":1,"Lectured-only":0};
+const KENC = {"Multimodal":2,"Illustrated":1,"Text":0}; // teaching-encoding quality (pedagogy→knowledge pathway, spec 2026-07-06)
+// cadence: none=0 infrequent=1 regular LDHF=2 continuous QI=3
+const CAD = {"None":0,"Infrequent":1,"Regular LDHF":2,"Continuous QI":3};
+
+/* ---------- Cadre profiles (TRACE_cadre_profiles.md) ----------
+   Four attributes (R1 reasoning, R3 literacy/numeracy, R4 training-currency, R2 exposure)
+   Note: file labels reasoning R1, literacy/numeracy R3, training-currency R4, exposure R2. */
+const CADRES = {
+  MO: {
+    label:"Medical officer (MBBS)",
+    R1:LVL.High,  // clinical reasoning & knowledge base — High
+    R3:LVL.High,  // literacy & numeracy — High
+    R4:LVL.Low,   // formal training currency (resuscitation) — Low
+    R2:LVL.Low,   // prior clinical exposure — Low
+    note:"High reasoning/literacy but low resuscitation training-currency and low exposure (must be trained; not competent by default)."
+  },
+  SN: {
+    label:"Staff nurse / midwife (GNM/BSc)",
+    R1:LVL.Mod,   // moderate nursing decision-making
+    R3:LVL.Mod,   // moderate (UP typical)
+    R4:LVL.Low,   // training currency — default Low for all cadres (consistent baseline; set per context if a cadre genuinely has more recent/frequent formal training)
+    R2:LVL.High,  // high but predominantly wrong-kind exposure -> displacement risk
+    note:"High exposure but 'wrong-kind' — binding issue is un-learning/displacement on steps that contradict entrenched habit.",
+    wrongKindExposure:true
+  },
+  ANM: {
+    label:"ANM (2-yr diploma)",
+    R1:LVL.Low,
+    R3:LVL.Low,
+    R4:LVL.Low,
+    R2:LVL.Low,
+    note:"Low on capacity AND training AND exposure (broadest gap)."
+  }
+};
+let CADRE_ORDER = ["MO","SN","ANM"];
+
+/* On/off-target mapping (TRACE_cadre_profiles.md):
+   NSSK & HBB on-target for all three; NRP on-target for MO+SN, ANM off-target for NRP. */
+function onTarget(prog, cadre){
+  // Portal: the user evaluates whichever cadres they add, so all are treated on-target.
+  // (An off-target flag can be reintroduced per programme if needed.)
+  return true;
+}
+
+/* ---------- §1 Cadre-derived quantities ---------- */
+function clamp(x,lo,hi){return Math.max(lo,Math.min(hi,x));}
+function cadreDerived(c){
+  // WMeff = clamp(round(mean(R1,R3)) + (1 if R2=3 or R4=3 else 0), 1, 3)
+  // WMeff = capacity from reasoning + literacy/numeracy. No exposure/chunking bonus: exposure
+  // builds SKILL (Sbase) at Shows-how/Does, but does not enlarge working memory for NEW
+  // conceptual OR numeric content. So the demand-capacity matrix taxes by itself — on a
+  // high-demand step a MODERATE cadre is strained (taxed) and a LOW cadre fails, regardless of
+  // exposure; moderate is not a free pass, and there is no hard gate.
+  const WMeff = clamp(Math.round((c.R1 + c.R3)/2), 1, 3);
+  // Sbase = round(mean(R2,R4))
+  const Sbase = Math.round((c.R2 + c.R4)/2);
+  // Entr = (R2 >= 2 and R4 <= 1)
+  const Entr = (c.R2>=2 && c.R4<=1);
+  // expose raw attributes too — representationalFit needs R3 (literacy), rung_KnowsHow needs R1
+  // (reasoning). BUG FIX 2026-06-15: these were undefined, so representational fit never fired.
+  return {WMeff, Sbase, Entr, R1:c.R1, R3:c.R3, R2:c.R2, R4:c.R4};
+}
+
+/* =====================================================================
+   STEP-CONSTANTS (programme-independent) — constants_and_visual §A
+   ===================================================================== */
+const STEP_LABELS = {
+  F0:"F0 Preparation", F1:"F1 Initial assessment", F2:"F2 Initial stabilisation",
+  F3:"F3 Cord management", F4:"F4 Decide to ventilate", F5:"F5 Effective PPV",
+  F6:"F6 Correct ineffective ventilation", F7:"F7 HR assessment",
+  F8:"F8 HR-based escalation", F9:"F9 Advanced support", F10:"F10 Post-event / referral"
+};
+const STEPS = Object.keys(STEP_LABELS);
+
+// emergency(bool), decay (Low/Mod/High; "Low-Mod" noted), people(number)
+// list:true = a MULTI-ITEM / sequence step whose reliable Does requires completing the whole
+// set (a checklist task) — recall alone can't guarantee completeness, so Does needs the list on
+// a usable aid (or full, sustained recall). F0 prep, F2 stabilisation sequence, F6 corrective
+// sequence, F10 monitoring set.
+const STEP_CONST = {
+  F0:{emergency:false, decay:"Low",   people:1, list:true},
+  F1:{emergency:true,  decay:"Low",   people:1},
+  F2:{emergency:true,  decay:"Mod",   people:1, list:true},
+  F3:{emergency:false, decay:"Low",   people:1},
+  F4:{emergency:true,  decay:"Low-Mod", people:1}, // "Low–Mod" in file; treated as Mod (conservative) — see Inputs note
+  F5:{emergency:true,  decay:"High",  people:1},
+  F6:{emergency:true,  decay:"High",  people:1, list:true},
+  F7:{emergency:true,  decay:"Mod",   people:1},
+  F8:{emergency:true,  decay:"Mod",   people:1},
+  F9:{emergency:true,  decay:"High",  people:2, advanced:true}, // advanced support (intubation/compressions) — experience-dependent
+  F10:{emergency:false,decay:"Low",   people:1} // post-event monitoring is a SUSTAINED activity, not a one-shot complete-or-fail checklist → not list-gated
+};
+// map decay text to retention curve key
+function decayKey(d){
+  if(d==="Low") return "Low";
+  if(d==="High") return "High";
+  return "Mod"; // "Mod" and "Low-Mod" both treated as Moderate (conservative)
+}
+
+/* =====================================================================
+   PER-PROGRAMME STEP CODING (faithful transcription of coding files)
+   A cognitive(Low/Mod/High) -> Knows demand
+   B perceptual-motor(None/Trainable/Hard) -> Shows-how demand
+   D decidability(Clear/Partial/Ambiguous) -> Knows-how demand + decision-support
+   E executability(Clear/Partial/Vague)  ] algorithm quality (chunking / ambiguity)
+   F integrity(Consistent/Minor/Distorted)]
+   G scope(Included/Referred-out/N-A)
+   bedsideAvail (constants_and_visual §C) : On-aid / Manual-only / Partial / Referred-out / N/A
+   refValue (constants_and_visual §D, value-bearing steps) : On-aid / Manual-only / Absent / N/A
+   prac (Indicator I) ; sim (Indicator J)
+   displaceFlag : step contradicts a habituated prior practice (see note — not explicit in files)
+   ===================================================================== */
+
+// Integrity codes -> we treat "Distorted-or-omitted" as an ambiguity/illegibility signal
+const INTEG = {Consistent:"Consistent", Minor:"Minor", Distorted:"Distorted", NA:"NA"};
+
+// Programme-level post-plan
+// periodMo = the interval (months) between reinforcement events. Retention is protected at time t
+// only if a reinforcement event has occurred within [0,t] — i.e. periodMo <= t (§ retention fix
+// 2026-06-15). NRP's 2-yearly renewal (24 mo) therefore gives NO protection at t=6mo.
+const POSTPLAN = {
+  NSSK:{cadence:"None",     periodMo:Infinity, work:"Absent/Partial (prov)"},
+  HBB :{cadence:"Regular LDHF", periodMo:1,    work:"Partial (prov)"},
+  NRP :{cadence:"Infrequent", periodMo:24,     work:"Partial/Present (prov)"}
+};
+
+/* Job-aid ARTIFACT form (constants_and_visual §B) — recorded for the Inputs tab.
+   Representational fit is computed at the gate from these + cadre. */
+const AID_FORM = {
+  NSSK:{legibility:"Adequate", pictorial:1,  itemsPerBox:6, colourCoded:false, signposted:true,  flowArrows:true,  distinctSteps:3},   // pictorial = steps illustrated (of 11); distinctSteps = functions in own block (of 11)
+  HBB :{legibility:"Adequate", pictorial:10, itemsPerBox:2, colourCoded:true,  signposted:true,  flowArrows:true,  distinctSteps:11},
+  NRP :{legibility:"Adequate", pictorial:2,  itemsPerBox:4, colourCoded:true,  signposted:true,  flowArrows:true,  distinctSteps:11}
+};
+
+/* The per-step coding object.
+   NOTE ON displaceFlag: the coding files do NOT carry an explicit per-step
+   "contradicts a habituated prior practice" flag. The derivation rule requires
+   such a step-flag for the displacement modifier. We encode it as `null`
+   (indeterminate) for every step except where the cadre+programme narrative
+   makes it operational. Per TRACE_cadre_profiles.md the staff-nurse binding
+   constraint IS displacement "on steps that contradict entrenched habit", but
+   the specific steps are not enumerated in the locked files. To avoid INVENTING
+   values, displaceFlag is left null (treated as false / no displacement) and
+   listed in the Inputs tab + final report as a cell that could not be
+   confidently transcribed. */
+
+const CODING = {
+  NSSK:{
+    F0 :{A:3, B:"Trainable", D:"Clear",  E:"Clear", F:"Minor",     G:"Included",      bedside:"Manual-only", ref:"N/A",    prac:"Practised-no-standard", sim:true,  displaceFlag:null, integrityNote:"suction pressure is given two ways across NSSK's documents — '≤100 mmHg' (manual) vs '80–100 mmHg' (equipment list); compatible but not identical"}, // B=Trainable (basic bag-mask assembly sub-skill); bedside corrected 2026-06-15: NSSK chart starts at "baby crying?"; preparation/equipment is manual/FC only, NOT on the bedside algorithm (per TRACE_coding_NSSK.md provisional; visual-pass blanket On-aid was an error)
+    F1 :{A:1, B:"None",      D:"Clear",  E:"Clear", F:"Consistent",G:"Included",      bedside:"On-aid",  ref:"N/A",        prac:"Practised-no-standard", sim:true,  displaceFlag:null}, // B=None: NSSK cue is "crying" (trivial auditory perception)
+    F2 :{A:3, B:"Trainable", D:"Clear",  E:"Clear", F:"Minor",     G:"Included",      bedside:"On-aid",  ref:"N/A",        prac:"Practised-no-standard", sim:true,  displaceFlag:null, integrityNote:"the stimulation count differs between NSSK's documents — 'rub the back once or twice' (manual) vs 'rub back 2–3 times' (flipchart)"},
+    F3 :{A:1, B:"Trainable", D:"Clear",  E:"Clear", F:"Consistent",G:"Included",      bedside:"On-aid",  ref:"N/A",        prac:"Practised-no-standard", sim:true,  displaceFlag:null},
+    F4 :{A:1, B:"None",      D:"Clear",  E:"Clear", F:"Consistent",G:"Included",      bedside:"On-aid",  ref:"N/A",        prac:"Practised-no-standard", sim:true,  displaceFlag:null},
+    F5 :{A:3, B:"Hard",      D:"Clear",  E:"Clear", F:"Consistent",G:"Included",      bedside:"On-aid",  ref:"Manual-only", prac:"Practised-no-standard", sim:true,  displaceFlag:null},
+    F6 :{A:3, B:"Hard",      D:"Clear",  E:"Clear", F:"Minor",     G:"Included",      bedside:"Manual-only", ref:"N/A",     prac:"Practised-no-standard", sim:true,  displaceFlag:null, integrityNote:"the corrective-step form differs between NSSK's documents — the manual gives two staged rounds, the flipchart a single flat four-action list, in a different order (same four actions)"},
+    F7 :{A:4,B:"Hard",      D:"Clear",  E:"Clear", F:"Consistent",G:"Included",      bedside:"On-aid",  ref:"Manual-only", prac:"Practised-no-standard", sim:true,  displaceFlag:null},
+    F8 :{A:4,B:"None",      D:"Clear",  E:"Clear", F:"Distorted", G:"Included",      bedside:"Partial", ref:"Manual-only", prac:"Practised-no-standard", sim:true,  displaceFlag:null, integrityNote:"the HR<60 escalation threshold is dropped — only the HR≥100 path is on the chart, so a critically low heart rate has no stated action"},
+    F9 :{A:3, B:"Hard",      D:"Partial",E:"Vague", F:"Distorted", G:"Referred-out",  bedside:"On-aid",  ref:"Absent",     prac:"Lectured-only",         sim:false, displaceFlag:null, integrityNote:"NSSK names compression + intubation + medication together but omits the 3:1 compression-to-ventilation ratio and the drug doses (referred-out, so not scored)"},
+    F10:{A:3, B:"Trainable", D:"Partial",E:"Clear", F:"Distorted", G:"Included",      bedside:"On-aid",  ref:"N/A",        prac:"Practised-no-standard", sim:true,  displaceFlag:null, integrityNote:"the post-event monitoring intervals are inconsistent across NSSK's documents, so there is no single correct schedule to follow"}
+  },
+  HBB:{
+    F0 :{A:3, B:"Trainable", D:"Clear",  E:"Clear", F:"Consistent",G:"Included",      bedside:"On-aid",  ref:"N/A",        prac:"Practised-to-mastery", sim:true,  displaceFlag:null}, // B=Trainable (basic assembly); bedside corrected 2026-06-15: HBB Action Plan carries a PICTORIAL "Prepare for birth" on-chart (most detailed of the three) — On-aid, pictographic (per direct chart inspection; rule-9 visual)
+    F1 :{A:1, B:"None",      D:"Clear",  E:"Clear", F:"Consistent",G:"Included",      bedside:"On-aid",  ref:"N/A",        prac:"Practised-to-mastery", sim:true,  displaceFlag:null}, // B=None: HBB cue is "crying" (trivial auditory perception)
+    F2 :{A:3, B:"Trainable", D:"Clear",  E:"Clear", F:"Consistent",G:"Included",      bedside:"On-aid",  ref:"N/A",        prac:"Practised-to-mastery", sim:true,  displaceFlag:null},
+    F3 :{A:1, B:"Trainable", D:"Clear",  E:"Clear", F:"Consistent",G:"Included",      bedside:"On-aid",  ref:"N/A",        prac:"Practised-to-mastery", sim:true,  displaceFlag:null},
+    F4 :{A:1, B:"None",      D:"Clear",  E:"Clear", F:"Consistent",G:"Included",      bedside:"On-aid",  ref:"N/A",        prac:"Practised-to-mastery", sim:true,  displaceFlag:null},
+    F5 :{A:3, B:"Hard",      D:"Clear",  E:"Clear", F:"Consistent",G:"Included",      bedside:"On-aid",  ref:"Manual-only", prac:"Practised-to-mastery", sim:true,  displaceFlag:null},
+    F6 :{A:3, B:"Hard",      D:"Clear",  E:"Clear", F:"Consistent",G:"Included",      bedside:"On-aid",  ref:"N/A",        prac:"Practised-to-mastery", sim:true,  displaceFlag:null},
+    F7 :{A:3, B:"Hard",      D:"Clear",  E:"Clear", F:"Minor",     G:"Included",      bedside:"On-aid",  ref:"N/A",        prac:"Practised-to-mastery", sim:true,  displaceFlag:null},
+    F8 :{A:3, B:"None",      D:"Clear",  E:"Clear", F:"Consistent",G:"Included",      bedside:"On-aid",  ref:"N/A",        prac:"Practised-to-mastery", sim:true,  displaceFlag:null},
+    F9 :{A:"N/A", B:"N/A",       D:"N/A",    E:"N/A",   F:"NA",        G:"Referred-out",  bedside:"Referred-out", ref:"N/A",   prac:"N/A",                  sim:false, displaceFlag:null},
+    F10:{A:3, B:"Trainable", D:"Clear",  E:"Clear", F:"Consistent",G:"Included",      bedside:"Manual-only", ref:"N/A",    prac:"Practised-to-mastery", sim:true,  displaceFlag:null}
+  },
+  NRP:{
+    F0 :{A:3, B:"Trainable", D:"Clear",  E:"Clear", F:"Consistent",G:"Included",      bedside:"Partial", ref:"N/A",        prac:"Practised-to-mastery", sim:true,  displaceFlag:null}, // B=Trainable (basic assembly); bedside corrected 2026-06-15: NRP Algorithm names "check equipment" (cue on-chart) but the Quick Equipment Checklist DETAIL is manual-only -> Partial (cue holds for high-capacity; detail tanks over time for SN/ANM)
+    F1 :{A:1, B:"Trainable", D:"Clear",  E:"Clear", F:"Consistent",G:"Included",      bedside:"On-aid",  ref:"N/A",        prac:"Practised-to-mastery", sim:true,  displaceFlag:null, concurrency:3}, // concurrency=3 signs → High (2026-06-15): NRP F1 integrates THREE signs at once (term + tone + breathing) vs NSSK/HBB single "crying?". A stays Low (little to memorise); the difficulty is concurrent integration at the moment of need — non-offloadable, scaled by cadre.
+    F2 :{A:3, B:"Trainable", D:"Clear",  E:"Clear", F:"Consistent",G:"Included",      bedside:"On-aid",  ref:"N/A",        prac:"Practised-to-mastery", sim:true,  displaceFlag:null},
+    F3 :{A:3, B:"Trainable", D:"Clear",  E:"Clear", F:"Consistent",G:"Included",      bedside:"On-aid",  ref:"N/A",        prac:"Practised-to-mastery", sim:true,  displaceFlag:null},
+    F4 :{A:3, B:"None",      D:"Clear",  E:"Clear", F:"Consistent",G:"Included",      bedside:"On-aid",  ref:"N/A",        prac:"Practised-to-mastery", sim:true,  displaceFlag:null},
+    F5 :{A:4,B:"Hard",concurrency:2, D:"Clear",  E:"Clear", F:"Consistent",G:"Included",      bedside:"On-aid",  ref:"On-aid",     prac:"Practised-to-mastery", sim:true,  displaceFlag:null}, // concurrency=2 signs → Mod: titrates FiO2 to the SpO2 target while ventilating (a value integrated at the instant)
+    F6 :{A:4,B:"Hard",      D:"Clear",  E:"Clear", F:"Consistent",G:"Included",      bedside:"On-aid",  ref:"N/A",        prac:"Practised-to-mastery", sim:true,  displaceFlag:null},
+    F7 :{A:4,B:"Hard",      D:"Clear",  E:"Clear", F:"Consistent",G:"Included",      bedside:"On-aid",  ref:"On-aid",     prac:"Practised-to-mastery", sim:true,  displaceFlag:null}, // concurrency Low (default): the HR assessment integrates one value (the heart rate); SpO2 belongs to F5 titration / F8 escalation
+    F8 :{A:4,B:"None",      D:"Clear",  E:"Clear", F:"Consistent",G:"Included",      bedside:"On-aid",  ref:"On-aid",     prac:"Practised-to-mastery", sim:true,  displaceFlag:null},
+    F9 :{A:4,B:"Hard",concurrency:2, D:"Clear",  E:"Clear", F:"Consistent",G:"Included",      bedside:"On-aid",  ref:"On-aid",     prac:"Practised-to-mastery", sim:true,  displaceFlag:null}, // concurrency=2 signs → Mod: the leader integrates HR response + ventilation/oxygenation adequacy, with escalation/drug decisions at the periodic (~60 s) reassessment rather than continuously
+    F10:{A:3, B:"Trainable", D:"Clear",  E:"Clear", F:"Consistent",G:"Included",      bedside:"On-aid",  ref:"N/A",        prac:"Practised-to-mastery", sim:true,  displaceFlag:null}
+  }
+};
+/* kenc (teaching-encoding quality) — PROVISIONAL programme-level defaults, coded from the facilitator
+   materials and refinable per step via the coding dial. HBB (pictorial Action Plan + flip chart, demo +
+   practice) = Multimodal; NSSK (flip chart with some illustrations over a text manual) = Illustrated;
+   NRP (text textbook + eSim / demonstration video) = Illustrated. Review per step against the materials. */
+const KENC_DEFAULT = {NSSK:"Illustrated", HBB:"Multimodal", NRP:"Illustrated"};
+for(const p in CODING) for(const s in CODING[p]) if(CODING[p][s].kenc===undefined) CODING[p][s].kenc = KENC_DEFAULT[p] || "Text";
+
+/* =====================================================================
+   THE ENGINE — §2 per-rung gate, §3 modifiers, §4 combiner, §5 output
+   `opt` carries the toggle state.
+   ===================================================================== */
+
+function isNA(v){return v==="N/A" || v==="NA" || v===null || v===undefined;}
+
+/* representational + offloading helpers (CLT + expertise reversal; Knows §2.1).
+   FIX 2026-06-15: representational fit is the JOB-AID FORM × CADRE LITERACY interaction,
+   NOT algorithm clarity. Algorithm clarity (executability/integrity) acts only at Knows-how;
+   it must not rescue a high cognitive-demand step for a low-WM cadre (the NRP-vs-ANM bug). */
+// Logical separation -> density level (codebook: High = ≤2/box [sparse], Moderate = 3–4,
+// Low = ≥5 [dense/cluttered]). A dense aid adds extraneous load (CLT) and is harder to scan.
+// All aid-form quality is OBJECTIVE & observable (not a self-rating):
+// Density = items per (busiest) box, codebook bands: ≤2 Sparse · 3–4 Moderate · ≥5 Dense.
+function densityKey(prog){
+  const n=(AID_FORM[prog]&&+AID_FORM[prog].itemsPerBox)||3;
+  return n>=5?"Dense":n<=2?"Sparse":"Moderate";
+}
+/* Numeric-input binning (2026-07-06): reviewers enter the raw COUNT; the engine bins it to its band.
+   Each helper accepts a number (raw count) or a legacy category string (back-compat). Score-neutral —
+   the bands and the scoring are unchanged; only the input is now the actual number. Denominator for the
+   two chart counts is the canonical step set (F0–F10). */
+function pictLevel(v){ if(typeof v==='number') return v>=8?"Extensive": v>=4?"Partial":"Minimal"; return v; }        // steps with a picture
+function diffLevel(v){ if(typeof v==='number') return v>=10?"All": v>=6?"Most":"Few"; if(v===true) return "All"; if(v===false||v==null) return "Few"; return v; } // steps in their own block
+function concLevel(v){ if(typeof v==='number') return v<=1?"Low": v===2?"Mod":"High"; return v||"Low"; }              // signs integrated at once
+function aLevel(v){ if(typeof v==='number') return v<=1?1: v<=3?2:3; return LVL[v]||2; }                              // cognitive demand: interacting-element count → level (1/2/3)
+function aBand(v){ if(typeof v==='number') return v<=1?"Low": v<=3?"Mod":"High"; return v; }                          // → band label for display
+// Navigation has TWO observable dimensions (both matter under the Golden-Minute clock):
+//   (1) TARGET ACQUISITION — distinctSteps: how well differentiated the canonical functions are,
+//       i.e. how many sit in their own clearly bounded, separately-labelled block (vs several
+//       functions crammed into one box), so the reader can jump straight to the right one.
+//       GRADED, not binary: "All" (2) · "Most" (1) · "Few" (0). The dominant feature for emergency use.
+//   (2) WAYFINDING — colour-coding, phase/section signposting, directional flow (arrows):
+//       orient the reader to the general region.
+// Target acquisition DOMINATES and caps navigation — wayfinding cannot rescue an aid whose
+// functions you can't locate (colour/arrows take you to the region; you still fumble among
+// crammed items under the clock). So differentiation sets the ceiling:
+//   Few  → Poor   (cannot be lifted by wayfinding)
+//   All  → Good if >=2 wayfinding aids, else Adequate
+//   Most → Adequate (ceiling)
+function navLevel(prog){
+  const f=AID_FORM[prog]||{};
+  const wayfind=(f.colourCoded?1:0)+(f.signposted?1:0)+(f.flowArrows?1:0);
+  const taMap={All:2,Most:1,Few:0};
+  const ta=taMap[diffLevel(f.distinctSteps)]; // raw count → band → level
+  if(ta===0) return "Poor";                       // Few: capped at Poor
+  if(ta>=2 && wayfind>=2) return "Good";          // All + good wayfinding
+  return "Adequate";                              // Most, or All with weak wayfinding
+}
+/* Plain-language, LIVE explanation of the derived navigation rating, so any user can see WHY the
+   rating is what it is at the point of scoring — without reading the code. Mirrors navLevel exactly. */
+function navWhy(prog){
+  const f=AID_FORM[prog]||{};
+  const names=[]; if(f.colourCoded)names.push("colour"); if(f.signposted)names.push("signposting"); if(f.flowArrows)names.push("arrows");
+  const wayfind=names.length;
+  const verb = wayfind===1?"is":"are";
+  const count = wayfind+" of 3 wayfinding aids "+verb+" ticked"+(wayfind?" ("+names.join(", ")+")":"");
+  const ta=diffLevel(f.distinctSteps);
+  if(ta==="Few")
+    return "<b>Poor.</b> Functions are crammed across shared boxes, so under the clock the reader can't jump straight to the right step. "+count+" — these can point to a region but can't fix crammed boxes, so navigation is capped at Poor.";
+  if(ta==="All" && wayfind>=2)
+    return "<b>Good.</b> Every function has its own labelled block, and "+count+" (2 or more), so the right step is easy to find.";
+  if(ta==="All")
+    return "<b>Adequate.</b> Every function has its own labelled block, but only "+count+" (fewer than 2).";
+  return "<b>Adequate.</b> A few functions still share a box, which caps navigation at Adequate however many wayfinding aids are ticked ("+count+").";
+}
+/* Plain-language help for the three wayfinding checkboxes, at the point of scoring (click to open).
+   Each: what it means, a concrete example, and the observable rule for ticking / not ticking it. */
+function wayfindingHelpHTML(){
+  return `<details style="margin:5px 0 0;max-width:820px">
+    <summary style="cursor:pointer;font-weight:600;color:var(--accent);font-size:13px">What do these mean? When do I tick each?</summary>
+    <div style="font-size:13px;line-height:1.55;margin:7px 0 0;border-left:3px solid var(--line);padding-left:11px">
+      <p style="margin:5px 0"><b>Colour-coded sections</b> — the chart uses different colours to <i>group or separate</i> steps (e.g. routine care in green, “baby needs help” in yellow, danger in red), not just a coloured title or logo.<br>
+        ✓ <b>Tick</b> if the colours carry meaning — grouping related steps, separating phases, or flagging urgency.&nbsp; ✗ <b>Leave unticked</b> if the chart is black-and-white, or colour is only decoration.</p>
+      <p style="margin:5px 0"><b>Section headings</b> — visible <i>headings</i> that name the stages, so you can see where you are in the flow (e.g. “At birth”, “If not breathing”, “If heart rate &lt;60”).<br>
+        ✓ <b>Tick</b> if the chart is divided into named sections / stages.&nbsp; ✗ <b>Leave unticked</b> if it is one undivided list with no headings.</p>
+      <p style="margin:5px 0"><b>Arrows between steps</b> — arrows or connecting lines that show the <i>order</i> to follow and which way to go at a yes/no branch.<br>
+        ✓ <b>Tick</b> if arrows or lines show what comes next.&nbsp; ✗ <b>Leave unticked</b> if steps are just stacked top to bottom with no connectors.</p>
+    </div></details>`;
+}
+/* Live explanation of the derived density rating. */
+function densityWhy(prog){
+  const n=(AID_FORM[prog]&&+AID_FORM[prog].itemsPerBox)||3; const k=densityKey(prog);
+  const band=n>=5?"5 or more":n<=2?"2 or fewer":"3–4";
+  const tail=k==="Dense"?"hard to scan quickly under pressure":k==="Sparse"?"easy to scan at a glance":"a moderate scanning load";
+  return "<b>"+k+".</b> The busiest box holds "+band+" items — "+tail+".";
+}
+/* One combined "why + what" expander for the wall-chart panel — folds the density and navigation
+   explanations and the three wayfinding definitions into a single collapsible, to cut on-screen clutter. */
+function chartGuideHTML(prog){
+  return `<details style="margin:2px 0 0;max-width:900px">
+    <summary style="cursor:pointer;font-weight:600;color:var(--accent);font-size:13px">Why these ratings, and what do the wayfinding boxes mean?</summary>
+    <div style="font-size:12.5px;line-height:1.55;margin:7px 0 0;border-left:3px solid var(--line);padding-left:11px">
+      <p style="margin:5px 0"><b>Density</b> — ${densityWhy(prog)}</p>
+      <p style="margin:5px 0"><b>Navigation</b> — ${navWhy(prog)}</p>
+      <p style="margin:9px 0 3px;font-weight:600">The three wayfinding boxes — tick each the chart actually has:</p>
+      <p style="margin:4px 0"><b>Colour-coded sections</b> — different colours group or separate steps (e.g. routine in green, danger in red), not just a coloured title. ✓ Tick if the colours carry meaning; ✗ leave unticked if black-and-white or decorative.</p>
+      <p style="margin:4px 0"><b>Section headings</b> — visible headings that name the stages (e.g. &ldquo;At birth&rdquo;, &ldquo;If not breathing&rdquo;). ✓ Tick if the chart is divided into named sections.</p>
+      <p style="margin:4px 0"><b>Arrows between steps</b> — arrows or lines showing the order and which way to go at a yes/no branch. ✓ Tick if connectors show what comes next.</p>
+    </div></details>`;
+}
+function representationalFit(code, der){
+  // SYMMETRIC (expertise reversal + CLT): for a low/moderate-literacy cadre (R3<=2) a
+  // pictographic aid HELPS (+1, carries a non-reader) and a text/minimal aid TAXES (-1, adds
+  // decoding/extraneous load). For a high-literacy cadre (R3=3) both are neutral (text is fine,
+  // pictures redundant). DENSITY (logical separation) is folded in here — one aid-fit function,
+  // so it cannot double-count, and it flows automatically into the bedside usability gate.
+  const f = AID_FORM[code._prog];
+  if(!f || der.R3>=3) return 0;                 // high literacy: neutral
+  const pict = pictLevel(f.pictorial);          // raw count → band
+  if(pict==="Extensive") return +1;             // most/all steps illustrated → carries a non-reader
+  if(pict==="Partial") return 0;                // some steps illustrated → pictures offset the text load (neutral middle)
+  // "Minimal" = text-only → taxes by decoding + clutter load:
+  const dense = densityKey(code._prog)==="Dense";
+  if(der.R3<=1) return -1;                                  //   low literacy: taxed on any text
+  return (aLevel(code.A)>=3 || (dense && aLevel(code.A)>=2)) ? -1 : 0; //   moderate literacy: taxed on heavy load, OR on a dense aid for non-trivial (≥Mod) steps
+}
+/* ============================================================================
+   CONSOLIDATED MODEL (2026-06-15). One knowledge-availability mechanism replaces
+   the former separate offloading (Knows), decision-support (Knows-how) and bedside
+   (Does) modifiers: knowledge is available if HELD in the head OR carried on a USABLE
+   aid, evaluated at both Knows (learnability) and Does (moment of need). Skill is a
+   separate, non-offloadable path. See TRACE_miller_per_step_decomposition.md.
+   ============================================================================ */
+
+/* Overall aid usability gate for THIS cadre: legible + representational fit not negative
+   (pictorial × density × literacy). Presence is necessary but not sufficient — an aid the
+   cadre cannot parse under stress gives no support. (Overall attributes of the whole aid.) */
+function aidUsable(code, der){
+  // Usable iff the form fits the cadre (pictorial × density × literacy ≥ 0). Legibility is RECORDED
+  // (AID_FORM.legibility) but not scored — all three aids are "Adequate", so it does not discriminate.
+  return representationalFit(code, der) >= 0;
+}
+
+/* Does the aid carry THIS step's demanded content, in a usable form? (0/1/2)
+   Per-step content coverage × overall usability. Generalises bedside (cue/sequence on chart)
+   and ref (the parameter value printed). A parameter the step needs that is NOT printed caps
+   support at partial; an unusable form gives none. */
+function aidKnowledge(code, der, opt){
+  if(opt && opt.aid===false) return 0;
+  let content = code.bedside==="On-aid" ? 2 : code.bedside==="Partial" ? 1 : 0; // cue/sequence on chart
+  if(code.ref && code.ref!=="N/A" && code.ref!=="On-aid") content = Math.min(content, 1); // a needed value isn't printed
+  if(!aidUsable(code, der)) content = 0;                                                  // present but unusable
+  // Overall navigation/clarity of the WHOLE aid (an overall attribute): a poorly-navigable chart
+  // (monochrome, weak signposting) carries its content one level less reliably under stress.
+  const f = AID_FORM[code._prog];
+  if(navLevel(code._prog)==="Poor" && content>0) content = content - 1;
+  return content;
+}
+
+/* Unaided recall the cadre can LEARN/hold (cognitive load A vs working memory), with the
+   learning-form representational fit. */
+function heldKnowsBase(code, der, opt){
+  if(isNA(code.A)) return null;
+  const d = aLevel(code.A);
+  let out = d===1 ? OUT.Clears
+          : d===2 ? (der.WMeff>=2?OUT.Clears:OUT.Strained)
+          : (der.WMeff===3?OUT.Clears : der.WMeff===2?OUT.Strained : OUT.Fails);
+  // Pedagogy → knowledge (kenc, spec 2026-07-06). Teaching-encoding quality raises HELD knowledge,
+  // cadre-weighted by literacy (expertise-reversal in reverse). REPLACES the former aid-pictorial → held +1
+  // proxy: the aid's pictorial-ness now feeds ONLY aidKnowledge (offload), so pictorial programmes are not
+  // double-counted. Capped +1, floored at Strained, then decayed as before.
+  if(opt.repfit){
+    const kn  = (KENC[code.kenc]!==undefined) ? KENC[code.kenc] : 0; // teaching-encoding quality (default Text/0)
+    const lit = der.R3;                                              // literacy: 3 High(MO) · 2 Mod(SN) · 1 Low(ANM)
+    if(lit>=3){ /* MO never bumped — she learns the facts from text */ }
+    else if(kn===2) out=clamp(out+1,0,2);                            // multimodal / dual-coded → ANM + SN +1 held
+    else if(kn===1){ if(lit===1) out=clamp(out+1,0,2); }            // illustrated / demo video → ANM only
+    else if(lit===1 && out>OUT.Strained) out=OUT.Strained;          // text-only → ANM taxed to borderline
+  }
+  return out;
+}
+/* Effective reinforcement cadence AT TIME t (§ retention fix 2026-06-15): a reinforcement event
+   protects retention only if one has actually occurred within [0,t] — i.e. the reinforcement
+   period is no longer than the interval. Otherwise the cadence is effectively None (0) over that
+   interval, however high its nominal level. (A 2-yearly renewal gives no protection at 6 months.) */
+function effectiveCad(prog, t){
+  const full = CAD[POSTPLAN[prog].cadence];
+  const per = (POSTPLAN[prog].periodMo!=null) ? POSTPLAN[prog].periodMo : (full>0 ? 12 : Infinity);
+  return (per<=t) ? full : 0;
+}
+/* Held knowledge at time t. Knowledge decays SLOWER than skill (anchor A3): unreinforced, it
+   slips ONE level by the interval but is not lost. Within-interval reinforcement holds it. */
+function heldKnows(code, der, t, opt){
+  let h = heldKnowsBase(code, der, opt);
+  if(h===null) return null;
+  if(t>0){
+    const cad = effectiveCad(code._prog, t);
+    // Knowledge decays SLOWER than skill (anchor A3): unreinforced, it slips to BORDERLINE
+    // (Strained) by the interval but is not lost. Reinforcement (cadence≥1) holds it.
+    if(cad<1 && h>OUT.Strained) h = OUT.Strained;
+  }
+  return h;
+}
+/* Integrity → trainability (2026-06-16). A Distorted in-scope step's own materials are internally
+   inconsistent (or the wall chart omits / contradicts the true action). The provider cannot form ONE
+   correct rule during training (confusion — observed in the field) and the chart cannot be trusted at
+   the moment of need, so the KNOWLEDGE itself is degraded — not merely an end-of-climb ceiling. Capped
+   at borderline (Strained), not zero: a course + hands-on practice still leave partial knowledge.
+   Routed through knowledge so it (a) costs every cadre that would otherwise hold the step, (b) is
+   diagnosed at the Knows rung, and (c) cannot silently vanish. Minor inconsistencies do not change the
+   action, so they are not charged. [calibrated convention — paired with the cut-point sensitivity] */
+function integrityKnowCap(code, opt, k){
+  return (opt && opt.integrity!==false && code.F==="Distorted" && code.G!=="Referred-out" && k>OUT.Strained)
+    ? OUT.Strained : k;
+}
+/* Knowledge AVAILABLE at the moment of need = held OR on a usable aid (one mechanism). */
+function knowledgeAvailable(code, der, t, opt){
+  const h = heldKnows(code, der, t, opt);
+  const a = aidKnowledge(code, der, opt);
+  const k = (h===null) ? Math.max(a, 0) : Math.max(h, a);
+  return integrityKnowCap(code, opt, k);
+}
+/* Application: can the available knowledge be turned into the decision? (decidability × reasoning).
+   A clear decision is free (Clears); a clear, aided decision is therefore the cheapest transition. */
+function applicationCapacity(code, der){
+  if(isNA(code.D)) return OUT.Clears;
+  const dec = code.D;
+  if(dec==="Clear") return OUT.Clears;
+  if(dec==="Partial") return der.R1>=2?OUT.Clears:OUT.Strained;
+  return der.R1===3?OUT.Clears : der.R1===2?OUT.Strained : OUT.Fails;
+}
+
+/* §2.3 Shows-how */
+/* Skill baseline the cadre ARRIVES with, for this skill's difficulty.
+   - Hard psychomotor skill (e.g. intubation, effective PPV technique): baseline =
+     training-currency (R4) ONLY. General clinical EXPOSURE cannot substitute — you do
+     not become able to intubate by being exposed to deliveries; a hard skill needs
+     deliberate, current training. (Exposure's legitimate maintenance role for an
+     already-trained provider lives in the retention × cadence term, not the baseline.)
+   - Trainable (low-barrier) skill (drying, suction, positioning): baseline =
+     mean(exposure, training) — these ARE built by routine exposure. */
+function rung_ShowsHow(code, der, opt){
+  if(isNA(code.B) || isNA(code.prac)) return null;
+  const demand = code.B; // None / Trainable / Hard
+  if(demand==="None") return OUT.Clears; // none = skip -> Clears
+  const prac = code.prac;
+
+  if(demand==="Trainable"){
+    // Low-barrier skill (assembly, positioning, suction, basic perception): a low barrier is
+    // built by ANY deliberate practice — baseline does not gate it; only lecture-only (no
+    // practice) leaves it unbuilt. (Durable once learnt — handled in skillSustained.)
+    return (prac==="Lectured-only") ? OUT.Fails : OUT.Clears;
+  }
+
+  // Hard psychomotor skill. General clinical EXPOSURE cannot substitute for training on a
+  // hard skill (you do not learn to ventilate/intubate by being exposed to deliveries), so
+  // the arrival baseline is training-currency R4 only.
+  const Sb = der.R4;
+  const advanced = !!(STEP_CONST[code._step] && STEP_CONST[code._step].advanced);
+
+  if(!advanced){
+    // Course-masterable hard skill (e.g. bag-mask PPV). Mastery practice BUILDS competence
+    // even from a low arrival baseline — this is the HBB / mastery-learning premise: the
+    // course is the training. (Acquisition clears; whether it is RETAINED is the Does term.)
+    if(prac==="Practised-to-mastery")    return OUT.Clears;
+    if(prac==="Practised-no-standard")   return Sb>=2?OUT.Strained:OUT.Fails;
+    return OUT.Fails; // lectured-only
+  }
+  // Advanced, experience-dependent procedure (e.g. endotracheal intubation) — orders of magnitude
+  // harder to acquire than PPV. Acquiring it AT ALL requires a physician-level professional
+  // foundation: a course cannot make a non-physician cadre (staff nurse, ANM) an intubator, however
+  // labour-room-current they are — they recognise-and-refer. (Currency R4 is the wrong gate here;
+  // it would let a high-currency nurse "out-intubate" a doctor. Professional scope, proxied by R1,
+  // governs whether the skill is acquirable at all.) Above that scope, mastery clears only for an
+  // already-current operator (R4>=2); a non-current physician reaches Strained at best.
+  if(der.R1<3) return OUT.Fails;                                  // outside this cadre's scope to acquire → refer
+  if(prac==="Practised-to-mastery")      return der.R4>=2?OUT.Clears:OUT.Strained;
+  if(prac==="Practised-no-standard")     return der.R4>=3?OUT.Strained:OUT.Fails;
+  return OUT.Fails; // lectured-only
+}
+
+/* §2.4 Skill sustainment over time — the SKILL component of Does (non-offloadable).
+   rung_ShowsHow gives skill ACQUISITION at course-end; it then decays by difficulty:
+   - basic / Trainable: durable once learnt → holds;
+   - Hard (emergency motor or trained perception): high decay → needs LDHF (cadence≥2) to hold;
+     cadence=1 → Strained, cadence=0 → Fails.
+   Plus automaticity: an emergency Hard skill at t=0 is capped Strained (no automaticity from a
+   single course — Fitts). Returns null when the step has NO skill component (B=None) — a pure
+   decision / trivial-cue step. (Whole-task simulation `sim` is recorded but NOT scored — every
+   scored step is sim=true here, so it does not discriminate; see derivation_rules §pruned.) */
+function skillSustained(code, der, t, opt){
+  const sh = rung_ShowsHow(code, der, opt);
+  if(sh===null || code.B==="None") return null; // no skill component
+  let out = sh;
+  const hard = (code.B==="Hard");
+  if(t>0 && hard){
+    const cad = effectiveCad(code._prog, t);
+    out = cad>=2 ? sh : cad===1 ? Math.min(sh, OUT.Strained) : OUT.Fails;
+  }
+  if(STEP_CONST[code._step].emergency && hard && t===0) out = Math.min(out, OUT.Strained); // Fitts
+  return out;
+}
+/* §2.4 Does(t) = the weaker of the two components: the SKILL (sustained motor/perceptual act —
+   non-offloadable) and the KNOWLEDGE (parameters/thresholds/sequence — held OR on a usable aid).
+   A no-skill step rides to a low-fidelity Does governed by knowledge alone. */
+/* §2.4b Concurrency — how many signs/actions must be perceived or done AT ONCE at the moment of
+   need (coded per step per programme: Low / Mod / High). This is element-interactivity load
+   (Sweller) borne in real time and it is NON-OFFLOADABLE — a chart can hold WHAT the signs are
+   but cannot integrate them for the provider — so it caps Does directly (the aid cannot rescue it),
+   scaled by the cadre's working memory. A single decisive cue (NSSK/HBB "crying?") is Low and never
+   caps; a multi-sign judgement (NRP "term+tone+breathing") is High and overwhelms a lower cadre.
+   The WMeff→cap mapping is a calibrated convention. Returns Clears (no cap) for Low. */
+function concurrencyCap(code, der){
+  const c = concLevel(code.concurrency);
+  if(c==="Low") return OUT.Clears;
+  const wm = der.WMeff;
+  if(c==="High") return wm>=3?OUT.Clears : wm===2?OUT.Strained : OUT.Fails;
+  return wm>=2?OUT.Clears : OUT.Strained; // Mod: only the lowest-capacity cadre is taxed
+}
+function doesLevel(code, der, t, opt){
+  // knowledge available at the moment of need: a LIST step needs the checklist on a usable aid
+  // (recall doesn't substitute) → aidKnowledge; any other step → ordinary available knowledge.
+  let dk = STEP_CONST[code._step].list ? aidKnowledge(code, der, opt) : knowledgeAvailable(code, der, t, opt);
+  dk = integrityKnowCap(code, opt, dk);   // list steps read raw aidKnowledge above — apply the integrity cap here too
+  const ss = skillSustained(code, der, t, opt);
+  const base = (ss===null) ? dk : Math.min(ss, dk);  // no skill → knowledge governs
+  return Math.min(base, concurrencyCap(code, der));   // concurrency caps the moment of need (non-offloadable)
+}
+
+/* §3 Displacement / unlearning — RETIRED (removed 2026-06-15). The mechanism is real (Einstellung;
+   negative transfer) but the kind/alignment of a cadre's prior exposure is not measurable from
+   design-stage documents, so it is out of scope — kept only as a Discussion-level caveat. */
+
+/* §3 No-double-count: a gap charged at integrity (algorithm quality) is not re-charged
+   at scope/Does. A cleanly referred-out step takes no integrity or Does penalty.
+   Implemented as: for Referred-out steps, Does/Shows-how penalties from the
+   integrity-flagged gap are not applied (the step is out-of-scope, not failed).
+   Operationally, when no-double-count is ON and scope=Referred-out, the rating is
+   reported at the highest rung the IN-SCOPE portion reaches and the referred-out
+   Does/Shows-how are not counted as failures (marked referred-out instead). */
+
+/* §4 combiner A — the consolidated asymmetric climb.
+   Knowledge/decision STRAINED rides up (the aid/clarity carry it) to a low-fidelity Does;
+   only a FAILED knowledge/decision stalls (at Knows / Knows-how). A SKILL deficit binds at the
+   Shows-how wall — no aid carries the hands or the eyes. */
+function climbA(ka, app, skillAcq, skillAtDoes, doesKnowledge, concCap){
+  const lv = v => v===2?"C":v===1?"S":"F";
+  if(concCap===undefined) concCap=OUT.Clears;
+  const knowsHowL = Math.min(ka, app);
+  if(knowsHowL===0) return {level:"F", reached:(ka===0?"Knows":"KnowsHow"), value:0};
+  // A skill that cannot be ACQUIRED/demonstrated binds at the Shows-how wall (the motor/perceptual
+  // wall — no aid carries it). NOTE: this is skill ACQUISITION, not moment-of-need automaticity.
+  if(skillAcq!==null && skillAcq<OUT.Clears && skillAcq<=knowsHowL)
+    return {level: lv(skillAcq), reached:"ShowsHow", value:skillAcq};
+  // Does = weaker of: the decision (app), the knowledge AVAILABLE AT THE MOMENT OF NEED
+  // (doesKnowledge), and the skill as performed (decay + automaticity). For a list/checklist step,
+  // doesKnowledge is the list on a usable aid (recall does NOT substitute — Gawande), GRADED:
+  //   2 = full usable checklist → Does by other factors; 1 = partial cue → Does-LOW; 0 = list absent.
+  // For a non-list step doesKnowledge is the ordinary available knowledge (recall is fine).
+  // doesLvl===0 means no reliable Does is possible → cap at the highest demonstrable rung.
+  const doesSkill = (skillAtDoes===null)?OUT.Clears:skillAtDoes;
+  const doesLvl = Math.min(app, doesKnowledge, doesSkill, concCap); // concurrency is non-offloadable
+  if(doesLvl===0)
+    return (skillAcq!==null) ? {level:lv(skillAcq), reached:"ShowsHow", value:skillAcq}
+                             : {level:lv(knowsHowL), reached:"KnowsHow", value:knowsHowL};
+  return {level: lv(doesLvl), reached:"Does", value:doesLvl};
+}
+
+/* §4/§5 evaluate one cell */
+function evaluateCell(prog, cadre, step, t, opt, combiner){
+  const code = Object.assign({_prog:prog,_cadre:cadre,_step:step}, CODING[prog][step]);
+  // TEST mode: standardise training-currency (R4) and exposure (R2) across all cadres,
+  // so the cadre cliff isolates the intrinsic difference (reasoning R1 + literacy R3).
+  const cad = (opt.testStd && opt.testStd.on)
+    ? Object.assign({}, CADRES[cadre], {R4:opt.testStd.R4, R2:opt.testStd.R2, wrongKindExposure:false})
+    : CADRES[cadre];
+  const der = cadreDerived(cad);
+  const referredOut = (code.G==="Referred-out");
+
+  // consolidated rung quantities
+  const ka  = knowledgeAvailable(code, der, t, opt);   // held OR usable aid
+  const app = applicationCapacity(code, der);          // decision vs reasoning
+  const knowsHowL = Math.min(ka, app);
+  let   skillAcq = rung_ShowsHow(code, der, opt);      // skill ACQUISITION (the Shows-how rung; null if no skill)
+  let   skillAtD = skillSustained(code, der, t, opt);  // skill AS PERFORMED at moment of need (decay + automaticity)
+
+  // scope: a referred-out step is judged only on the in-scope recognise-and-refer (knowledge
+  // path); performing the unscoped action is not this cadre's job → skill/Does not assessed.
+  let scopeNote=null;
+  if(referredOut && opt.nodouble){
+    scopeNote="referred-out (out of scope — recognise-and-refer assessed; performance not this cadre's job)";
+    skillAcq = null; skillAtD = null;
+  } else if(referredOut){
+    scopeNote="referred-out (penalty charged — no-double-count OFF)";
+  }
+
+  // Knowledge AVAILABLE AT THE MOMENT OF NEED (drives Does). For a multi-item LIST/checklist step,
+  // completeness requires the list on a usable aid — recall does NOT substitute (Gawande) — so it is
+  // aidKnowledge, GRADED 0/1/2 (absent / partial cue / full usable checklist). For any other step,
+  // recall is fine, so it is the ordinary available knowledge (held OR aid).
+  const isList = !referredOut && !!STEP_CONST[step].list;
+  const doesKnowledge = integrityKnowCap(code, opt, isList ? aidKnowledge(code, der, opt) : ka);
+
+  const doesV = (referredOut && opt.nodouble) ? "REFERRED" : doesLevel(code, der, t, opt);
+  const rungs = {Knows:ka, KnowsHow:knowsHowL, ShowsHow:skillAcq, Does:doesV};
+
+  // concurrency: non-offloadable cap on the moment of need (several signs/actions judged at once)
+  const concCap = referredOut ? OUT.Clears : concurrencyCap(code, der);
+  const otherDoes = Math.min(app, doesKnowledge, (skillAtD===null?OUT.Clears:skillAtD));
+  const concurrencyCapped = !referredOut && (concLevel(code.concurrency)!=="Low") && concCap<OUT.Clears && concCap<=otherDoes;
+
+  // rating
+  let rating;
+  if(combiner==="A"){
+    rating = climbA(ka, app, skillAcq, skillAtD, doesKnowledge, concCap);
+  } else {
+    rating = combine(rungs, combiner, referredOut, opt);
+  }
+
+  // §3 Integrity is now applied UPSTREAM, at the knowledge rung (integrityKnowCap), so a Distorted
+  // step's degraded knowledge propagates through the climb and is diagnosed at Knows — rather than as
+  // an end-of-climb ceiling that only fired when the cell was otherwise perfect (which let it silently
+  // disappear once a step failed earlier for a trainability reason). The flag below is retained for
+  // diagnosis / back-compat: it marks that this in-scope step carries a Distorted-integrity defect.
+  const integrityCap = !!(opt.integrity && code.F==="Distorted" && !referredOut);
+
+  const completenessCapped = isList && doesKnowledge < OUT.Clears; // list step lacking a full usable checklist
+  return {code, der, rungs, rating, referredOut, scopeNote, disp:false, integrityCap, completenessCapped, concurrencyCapped, isList, doesKnowledge,
+          terms:{ka, held:heldKnows(code,der,t,opt), aid:aidKnowledge(code,der,opt),
+                 application:app, skillAcq, skillSustained:skillAtD}};
+}
+
+/* §4 combiners.  Returns {level:'C'|'S'|'F'|'NA', reached:'rung name', value:numeric} */
+function combine(rungs, combiner, referredOut, opt){
+  const order=["Knows","KnowsHow","ShowsHow","Does"];
+  // build a clean list skipping null (not-applicable rungs) and REFERRED markers
+  const seq=[];
+  for(const r of order){
+    let v=rungs[r];
+    if(v===null) continue;          // rung not applicable -> skip (does not block climb)
+    if(v==="REFERRED"){ break; }    // climb stops at scope boundary (rating = last in-scope rung)
+    seq.push({rung:r, out:v});
+  }
+  if(seq.length===0) return {level:"NA", reached:"—", value:null};
+
+  if(combiner==="A"){ // ordered weakest-link: highest rung reached before first non-Clear
+    let reached="—", lastClear=null;
+    for(const s of seq){
+      if(s.out===OUT.Clears){ lastClear=s.rung; reached=s.rung; }
+      else { // first non-Clear -> rating is this rung's (strained/fails) outcome
+        return {level: s.out===OUT.Strained?"S":"F", reached:s.rung, value:s.out};
+      }
+    }
+    // all clear
+    return {level:"C", reached:seq[seq.length-1].rung, value:OUT.Clears};
+  }
+  if(combiner==="B"){ // compensatory: weighted (equal) mean of rung outcomes
+    const mean = seq.reduce((a,s)=>a+s.out,0)/seq.length;
+    const level = mean>=1.5?"C": mean>=0.75?"S":"F";
+    return {level, reached:"mean="+mean.toFixed(2), value:mean};
+  }
+  // combiner C hybrid: non-compensatory across rungs but graded within
+  // -> take the MINIMUM rung outcome (non-compensatory) but allow Strained to carry
+  let mn=2, where="—";
+  for(const s of seq){ if(s.out<mn){mn=s.out; where=s.rung;} }
+  return {level: mn===2?"C":mn===1?"S":"F", reached:where, value:mn};
+}
+
+/* =====================================================================
+   §5 Output banding (5-band by one-step sensitivity)
+   A result that survives a +/-1 perturbation reads firmer.
+   Perturbation = nudge WMeff/Sbase/R1 by +/-1 (clamped) and re-evaluate the
+   weakest-link level; if the level is unchanged under both nudges it is firm.
+   ===================================================================== */
+function perturbFirm(prog, cadre, step, t, opt, baseLevel){
+  // perturb cadre-derived capacities by +/-1 and check level stability
+  const variants=[+1,-1];
+  let stable=true;
+  for(const d of variants){
+    const c=Object.assign({}, CADRES[cadre]);
+    c.R1=clamp(c.R1+d,1,3); c.R3=clamp(c.R3+d,1,3);
+    c.R2=clamp(c.R2+d,1,3); c.R4=clamp(c.R4+d,1,3);
+    const saved=CADRES[cadre];
+    CADRES[cadre]=c;
+    const r=evaluateCell(prog,cadre,step,t,opt,"A").rating.level;
+    CADRES[cadre]=saved;
+    if(r!==baseLevel){stable=false;}
+  }
+  return stable;
+}
+
+function bandOf(prog,cadre,step,t,opt,combiner){
+  const ev=evaluateCell(prog,cadre,step,t,opt,combiner);
+  const lvl=ev.rating.level;
+  if(lvl==="NA") return {band:"NA", label:"n/a", ev};
+  if(!opt.fiveBand){
+    // 3-level + robustness flag
+    const firm = perturbFirm(prog,cadre,step,t,opt,lvl);
+    const map={C:"Clears",S:"Strained",F:"Fails"};
+    return {band:"3"+lvl, label:map[lvl], robust:firm, ev};
+  }
+  // 5-band: split Clears and Fails by firmness; Strained = Borderline
+  if(lvl==="S") return {band:"B", label:"Borderline", ev};
+  const firm=perturbFirm(prog,cadre,step,t,opt,lvl);
+  if(lvl==="C") return {band: firm?"VL":"L", label: firm?"Very likely":"Likely", ev};
+  return {band: firm?"VU":"U", label: firm?"Very unlikely":"Unlikely", ev}; // Fails
+}
+
+/* =====================================================================
+   §5 Recommendation (full pass over every rung short of Clears)
+   ===================================================================== */
+/* Programme-specific diagnosis: WHY a cell falls short, and the targeted lever — read from the
+   actual coded inputs and the engine's internals (not a generic per-rung template). */
+function aidUnusableReason(prog, der){
+  const bits=[];
+  if(pictLevel(AID_FORM[prog].pictorial)==="Minimal") bits.push("text-only");
+  if(densityKey(prog)==="Dense") bits.push("dense ("+(AID_FORM[prog].itemsPerBox||"?")+"/box)");
+  return (bits.length?("the aid is "+bits.join(", ")):"the aid form")+" — not usable for a "+(der.R3<=1?"low":"moderate")+"-literacy reader";
+}
+function _diagnoseCellCore(ev){
+  const s=ev.code._step, sc=STEP_CONST[s], T=ev.terms, der=ev.der, r=ev.rating, prog=ev.code._prog;
+  if(ev.referredOut) return {rung:"refer", why:"out of this cadre's scope — only recognise-and-refer is assessed", lever:"verify the referral pathway and the second-person / equipment precondition"};
+  if(r.reached==="Does" && r.level==="C") return null;
+  // Concurrency binds (and the skill itself is fine): several signs/actions must be judged at once
+  // at the moment of need — non-offloadable, so the lever is to reduce the simultaneous demand.
+  if(ev.concurrencyCapped && (ev.terms.skillAcq===null || ev.terms.skillAcq>=OUT.Clears))
+    return {rung:"concurrency", why:"this step asks her to perceive and integrate several things at once at the moment of need ("+aBand(ev.code.A)+" knowledge, but multiple signs judged simultaneously), which overwhelms this cadre under the clock — and a chart cannot integrate them for her", lever:"reduce what must be judged at once — use a single decisive cue (as NSSK/HBB use “crying”), sequence the checks one at a time, or scope this step to a more expert cadre"};
+  // An advanced procedure outside this cadre's professional scope is a scope decision, not a
+  // programme tweak — report it as such regardless of which rung it nominally stalls on.
+  if(sc.advanced && der.R1<3)
+    return {rung:"scope", why:"an advanced procedure (e.g. intubation) outside this cadre's professional scope — a course cannot make this cadre a reliable operator", lever:"refer it out to a trained operator; the programme over-scopes this step for this cadre"};
+  const perceptual=(s==="F1"||s==="F7");
+  const aidPresent=(ev.code.bedside==="On-aid"||ev.code.bedside==="Partial");
+  const formBad=aidPresent && !aidUsable(ev.code,der);
+  // Full-pass retention check: a high-decay emergency motor skill (Hard) also needs an adequate
+  // LDHF cadence (CAD>=2) to HOLD once built. If the programme's cadence is weaker, flag it as an
+  // additional forward-looking lever even when the climb breaks earlier (e.g. at Shows-how) —
+  // because fixing the earlier break alone won't sustain the skill.
+  const _cad=(POSTPLAN[prog]&&CAD[POSTPLAN[prog].cadence]!==undefined)?CAD[POSTPLAN[prog].cadence]:3;
+  const _ldhfGap=sc.emergency && ev.code.B==="Hard" && _cad<2;
+  const withLDHF=(res)=>{ if(_ldhfGap && !/LDHF/.test(res.lever)) res.lever+="; and note its hands-on skill will not hold at the moment of need without a low-dose high-frequency (LDHF) reinforcement cadence — this programme currently specifies “"+POSTPLAN[prog].cadence+"”"; return res; };
+  if(r.reached==="Knows"){
+    if(formBad)        return withLDHF({rung:"Knows", why:"the load ("+aBand(ev.code.A)+" cognitive) is beyond this cadre and the aid, though present, is unusable for her — "+aidUnusableReason(prog,der), lever:"make the aid usable (add pictograms / cut items per box) and/or reduce the step's load"});
+    if(!aidPresent)    return withLDHF({rung:"Knows", why:"the load ("+aBand(ev.code.A)+" cognitive) is beyond this cadre and the content isn't carried on the bedside aid", lever:"put the content on a usable, pictographic bedside aid, or reduce the load (simpler cue / fewer items)"});
+    return withLDHF({rung:"Knows", why:"the load ("+aBand(ev.code.A)+" cognitive) exceeds this cadre's working memory", lever:"reduce the load — simplify or chunk the step, or pick a simpler cue"});
+  }
+  if(r.reached==="KnowsHow")
+    return withLDHF({rung:"Knows-how", why:"the decision is under-specified (decidability "+ev.code.D+") and this cadre can't reliably reason it out", lever:"state the decision as an explicit binary / threshold on the algorithm and aid"});
+  if(r.reached==="ShowsHow"){
+    if(ev.completenessCapped)
+      return withLDHF({rung:"completeness", why: ev.doesKnowledge===0 ? "this is a multi-item checklist step and the list is not on a usable bedside aid — completeness can't be assured from memory" : "only a partial cue, not the full checklist, is on the aid", lever:"print the full checklist on a usable bedside aid"+(formBad?" — and make it usable ("+aidUnusableReason(prog,der)+")":"")});
+    if(sc.advanced){
+      if(der.R1<3) return {rung:"scope", why:"an advanced procedure (e.g. intubation) outside this cadre's professional scope — a course cannot make this cadre a reliable operator, however current", lever:"refer it out to a trained operator; the programme over-scopes this step for this cadre"};
+      return withLDHF({rung:"Shows-how", why:"an advanced, experience-dependent procedure that a single course cannot build to reliability without current case experience", lever:"build sustained supervised case experience to maintain currency, or refer it out"});
+    }
+    // Skill WAS acquired to standard but fully decays before the moment of need (no reinforcement
+    // within the interval) — a retention failure, not an acquisition gap.
+    if(ev.terms.skillAcq!==null && ev.terms.skillAcq>=OUT.Clears && ev.terms.skillSustained===OUT.Fails)
+      return {rung:"Does (retention)", why:"the skill is built to standard but fully decays before the moment of need — no reinforcement falls within the interval (cadence “"+POSTPLAN[prog].cadence+"”"+(isFinite(POSTPLAN[prog].periodMo)?", every "+POSTPLAN[prog].periodMo+" months":"")+")", lever:"set a low-dose high-frequency (LDHF) reinforcement cadence whose interval is shorter than the time to the real event"};
+    const how = perceptual ? "exposure to real / recorded (video) cases to train the eye" : "hands-on simulation practice";
+    if(ev.code.prac==="Lectured-only") return withLDHF({rung:"Shows-how", why:"the skill is only lectured, not practised", lever:"add "+how+", to a mastery standard"});
+    return withLDHF({rung:"Shows-how", why:"the skill is practised but not to a mastery standard", lever:"practise to a mastery standard via "+how});
+  }
+  // reached Does but borderline (low) — name the binding component(s)
+  const why=[], lever=[];
+  if(T.skillSustained!==null && T.skillSustained<2){
+    if(sc.emergency && ev.code.B==="Hard" && currentTime()===0){ why.push("the skill is built but not yet automatic at course-end (Fitts)"); lever.push("expected at course-end — it becomes reliable with low-dose high-frequency (LDHF) practice over the following months"); }
+    else { why.push("the skill decays without reinforcement (this programme's cadence is “"+POSTPLAN[prog].cadence+"”)"); lever.push("set a low-dose high-frequency (LDHF) reinforcement cadence"); }
+  }
+  if(ev.doesKnowledge<2){
+    const navPoor = navLevel(prog)==="Poor";
+    const contentOnAid = (ev.code.bedside==="On-aid");
+    if(sc.list){
+      if(contentOnAid && navPoor){ why.push("the checklist is on the chart, but its items are buried in multi-function boxes, so it can't be reliably worked through at the moment of need"); lever.push("give each step its own clearly labelled block and lay the checklist out so no item is missed"); }
+      else { why.push("the checklist is only partly on the aid"); lever.push("print the full checklist on a usable bedside aid"); }
+    } else {
+      const simplerCue = perceptual ? "a simpler cue (as NSSK/HBB use “crying” instead of judging breathing and tone)"
+        : (ev.code.ref && ev.code.ref!=="N/A") ? "a binary instead of a number"
+        : "a simpler, single-criterion decision";
+      if(contentOnAid && navPoor){ why.push("the cue/value is on the chart, but the chart's functions are crammed into shared boxes, so the right one can't be found under the clock and the knowledge it carries is downgraded"); lever.push("give each canonical function its own clearly labelled block so the right step can be found instantly"); }
+      else if(contentOnAid && formBad){ why.push("the cue/value is on the chart, but not in a form this cadre can use ("+aidUnusableReason(prog,der)+"), so it does not carry her at the moment of need"); lever.push("make the aid usable for this cadre (pictograms, not text), and/or simplify the step itself — "+simplerCue+" lowers what she must carry; reinforcement also helps"); }
+      else { why.push("the knowledge isn't held reliably and isn't on a usable aid, so it slips over the interval"); lever.push("put the cue / threshold on a usable aid — or simplify it to "+simplerCue+" — and/or add reinforcement"); }
+    }
+  }
+  if(ev.integrityCap){
+    why.push(ev.code.integrityNote
+      ? "the programme's own materials are internally inconsistent at this step — "+ev.code.integrityNote
+      : "the programme's own materials misstate this step (an internal inconsistency / omission)");
+    lever.push("make the source materials internally consistent at this step — state the dropped / omitted element so it can be performed as taught");
+  }
+  if(!why.length){ why.push("borderline at the moment of need"); lever.push("reinforce, or put supporting detail on the aid"); }
+  return {rung:"Does (low)", why:why.join("; "), lever:lever.join("; ")};
+}
+/* Integrity is an ORTHOGONAL guideline-quality defect: the programme's own materials are wrong, so
+   even a perfectly trained, well-reinforced provider would act on a wrong instruction. Its correction
+   must therefore surface whenever a step is Distorted and in-scope — regardless of where the trainability
+   climb breaks. Previously it lived only inside the Does-low branch (via ev.integrityCap, which fires
+   only when the cell otherwise reaches a reliable Does), so it silently disappeared once a step started
+   failing earlier for trainability reasons. This wrapper re-attaches it to whatever the primary verdict is. */
+function diagnoseCell(ev){
+  const d=_diagnoseCellCore(ev);
+  if(!d) return d;                                   // full pass (reliable Does, nothing to flag)
+  if(ev.code && ev.code.F==="Distorted" && !ev.referredOut){
+    const already=/internally inconsistent|misstate this step|materials are inconsistent/i.test(d.why);
+    if(!already){
+      d.why += "; and, independently, the programme's own materials are inconsistent at this step"
+             + (ev.code.integrityNote ? " — "+ev.code.integrityNote : " (an internal inconsistency / omission)");
+      d.lever += "; and make the source materials internally consistent here — state the dropped / omitted element so it can be performed as taught";
+    }
+  }
+  return d;
+}
+function recommendations(ev){
+  const d=diagnoseCell(ev);
+  if(!d) return ["Full pass — reaches a reliable Does for this cadre."];
+  return [ "<b>"+d.rung+"</b> — why: "+d.why+". <b>Lever:</b> "+d.lever ];
+}
+
+/* =====================================================================
+   UI
+   ===================================================================== */
+/* Portal: the engine always runs with all its rules on (the model). The former per-mechanism
+   toggles and TEST mode were research/debug controls and have been removed from the UI; the
+   Methodology-audit tab still measures each mechanism's contribution internally. */
+function readOpts(){ return {fiveBand:true, repfit:true, aid:true, nodouble:true, integrity:true, testStd:{on:false, R4:1, R2:3}}; }
+function currentCombiner(){ return "A"; } // weakest-link is the model
+function currentTime(){ const el=document.getElementById("timept"); return el?parseInt(el.value,10):0; }
+
+let PROGS=["NSSK","HBB","NRP"];
+
+/* ---- Cliff grid ---- */
+function progsToShow(){
+  const sel=document.getElementById("gridProg");
+  if(sel && sel.value==="__all__") return PROGS.slice();
+  if(sel && PROGS.includes(sel.value)) return [sel.value];
+  return [ (PROGS.includes(_curProg)?_curProg:PROGS[0]) ];
+}
+function onGridProgChange(v){ if(v!=="__all__") _curProg=v; renderGrid(); renderRecs(); }
+function renderGrid(){
+  const opt=readOpts(), comb=currentCombiner(), t=currentTime();
+  const pg=progsToShow();
+  const shortLbl=c=>{const L=CADRES[c]?CADRES[c].label:c; return L.length>22?L.slice(0,21)+"…":L;};
+  let h='<table class="grid"><thead><tr><th>Step</th>';
+  for(const p of pg){ h+=`<th colspan="${CADRE_ORDER.length}" class="pgtitle">${p}</th>`; }
+  h+='</tr><tr><th></th>';
+  for(const p of pg){ for(const c of CADRE_ORDER){ h+=`<th title="${(CADRES[c]?CADRES[c].label:c).replace(/"/g,'&quot;')}">${shortLbl(c)}</th>`; } }
+  h+='</tr></thead><tbody>';
+  for(const s of STEPS){
+    h+=`<tr><td class="stepcol">${STEP_LABELS[s]}</td>`;
+    for(const p of pg){
+      for(const c of CADRE_ORDER){
+        const b=bandOf(p,c,s,t,opt,comb);
+        const off=!onTarget(p,c);
+        const rg=(b.ev&&b.ev.rating)?b.ev.rating:null;
+        const RUNGMAP={Knows:"Knows",KnowsHow:"Knows-how",ShowsHow:"Shows-how",Does:"Does"};
+        // Cliff cell = the Miller rung reached + a simple high/low likelihood of reaching it.
+        // Colour: green = high (rung cleared), amber = low-borderline (strained), orange = low-fail.
+        let cls, inner;
+        if(!rg || b.band==="NA"){
+          cls="cell na"; inner="n/a";
+        } else if(b.ev && b.ev.referredOut && opt.nodouble){
+          // referred-out by design: not this cadre's job to perform — show distinctly,
+          // not as a failure. The in-scope recognise-and-refer portion is what's assessed.
+          const rung=RUNGMAP[rg.reached]||rg.reached;
+          cls="cell rg-referred";
+          inner=`<b>refer</b><div class="small bandsub">out of scope</div>`;
+        } else {
+          const lvl=rg.level; // C / S / F
+          const rung=RUNGMAP[rg.reached]||rg.reached;
+          // SHADE (high vs low) applies ONLY at Does — the climb's destination.
+          // Below Does, the cell is a single colour = the rung where the climb stalled.
+          if(rg.reached==="Does"){
+            const hi=(lvl==="C");
+            cls="cell rg-Does-"+(hi?"C":"F");
+            inner=`<b>Does</b><div class="small bandsub">${hi?"high":"low"}</div>`;
+          } else {
+            cls="cell rg-"+rg.reached+"-S";   // one colour per rung, no high/low split
+            inner=`<b>${rung}</b>`;
+          }
+        }
+        if(off) cls+=" offtarget";
+        h+=`<td class="${cls}" data-p="${p}" data-c="${c}" data-s="${s}">${inner}</td>`;
+      }
+    }
+    h+='</tr>';
+  }
+  h+='</tbody></table>';
+  document.getElementById("gridHost").innerHTML=h;
+  // legend
+  const leg=document.getElementById("gridLegend");
+  // hue = highest Miller rung reached (one colour each); high/low shade applies ONLY at Does
+  leg.innerHTML=`<b>rung reached (where the climb stalls):</b>
+    <span class="rg-Knows-S">Knows</span><span class="rg-KnowsHow-S">Knows-how</span>
+    <span class="rg-ShowsHow-S">Shows-how</span>
+    <b style="margin-left:6px">reaches Does:</b>
+    <span class="rg-Does-C">high</span><span class="rg-Does-F">low</span>
+    <span class="rg-referred">refer (out of scope)</span>
+    <span class="na">n/a</span>
+    <b style="margin-left:6px;color:var(--offtarget)">◇ off-target (comparison only)</b>`;
+  // click handlers
+  document.querySelectorAll(".grid td.cell").forEach(td=>{
+    td.onclick=()=>{
+      document.getElementById("d_prog").value=td.dataset.p;
+      document.getElementById("d_cadre").value=td.dataset.c;
+      document.getElementById("d_step").value=td.dataset.s;
+      switchView("drill"); renderDrill();
+    };
+  });
+}
+
+/* ---- Drill-down ---- */
+function pill(v){
+  if(v===null) return '<span class="pill SK">skip / n-a</span>';
+  if(v==="REFERRED") return '<span class="pill SK">referred-out</span>';
+  return {0:'<span class="pill F">Fails</span>',1:'<span class="pill S">Strained</span>',2:'<span class="pill C">Clears</span>'}[v];
+}
+function renderDrill(){
+  const p=document.getElementById("d_prog").value;
+  const c=document.getElementById("d_cadre").value;
+  const s=document.getElementById("d_step").value;
+  const opt=readOpts(), comb=currentCombiner(), t=currentTime();
+  const ev=evaluateCell(p,c,s,t,opt,comb);
+  const b=bandOf(p,c,s,t,opt,comb);
+  const der=ev.der; const sc=STEP_CONST[s];
+  const inv={1:"low",2:"moderate",3:"high"};
+  const loadWord={Low:"a little to hold in mind",Mod:"a moderate amount to hold in mind",High:"a lot to hold in mind"}[aBand(ev.code.A)]||aBand(ev.code.A);
+  const decWord={Clear:"spelled out plainly",Partial:"only partly spelled out",Ambiguous:"left to her own judgement"}[ev.code.D]||ev.code.D;
+  const pracWord={"Lectured-only":"has only been lectured on it, not practised it","Practised-no-standard":"has practised it, but not to a set pass standard","Practised-to-mastery":"has practised it to a pass standard"}[ev.code.prac]||("practice: "+ev.code.prac);
+  let aidDesc;
+  if(ev.code.bedside==="Manual-only") aidDesc="it isn't on the bedside chart (manual only)";
+  else aidDesc=(ev.code.bedside==="Partial"?"part of it is on the bedside chart":"it's on the bedside chart")+(aidUsable(ev.code,der)?", in a form she can use":", but not in a form she can use under pressure");
+  let h=`<div class="kv">
+    <div>Programme · cadre · step</div><div><b>${p} · ${CADRES[c].label} · ${STEP_LABELS[s]}</b></div>
+    <div>When</div><div>${t===0?"end of the course":"about 6 months later"}</div>
+    <div>Is this her job?</div><div>${onTarget(p,c)?"yes — this cadre is expected to do this step":'<span class="flag">not normally this cadre’s job — shown only for comparison, never a fault</span>'}</div>
+    <div>This reader</div><div>working memory ${inv[der.WMeff]||der.WMeff}, starting skill ${inv[der.Sbase]||der.Sbase}${der.Entr?", some habit interference":""}</div>
+    <div>This step</div><div>${sc.emergency?"time-critical emergency":"not time-critical"} · forgetting risk ${String(sc.decay).toLowerCase()}${sc.people>1?' · <span class="flag">needs a second person (reported, not scored)</span>':''}</div>
+  </div>
+  <p class="small muted" style="margin:8px 0 2px">Each line below is one question. The tag shows the answer: <b>Clears</b> = yes, reliably · <b>Strained</b> = only just · <b>Fails</b> = no.</p>`;
+  const pillN = v => (v===null||v===undefined)?'<i>—</i>':pill(v);
+  h+=`<div class="rung"><b>Does she have the knowledge?</b> ${pillN(ev.rungs.Knows)}<br>
+    <span class="small muted">This step gives her ${loadWord}. Can she carry it in her head? ${pillN(ev.terms.held)}. Is it on a job-aid she can use? ${pillN(ev.terms.aid)} — ${aidDesc}. She counts as knowing it if <i>either</i> works.</span></div>`;
+  h+=`<div class="rung"><b>Can she turn that into the right decision?</b> ${pillN(ev.rungs.KnowsHow)}<br>
+    <span class="small muted">The decision here is ${decWord}. When it's written down she can read it off the chart; when it's vague she has to work it out herself. Because a clear decision can be carried on the chart, a shaky memory doesn't sink this step.</span></div>`;
+  const showsBody = ev.code.B==="None" ? "There's no hands-on skill in this step — nothing to demonstrate."
+    : ev.code.B==="Trainable" ? ("This is a basic hands-on skill: any real practice builds it and it stays once learnt. She "+pracWord+".")
+    : STEP_CONST[s].advanced ? ("This is an advanced procedure a single course can't build to reliability — it needs ongoing real cases. No job-aid can stand in for the hands. She "+pracWord+".")
+    : ("This is a demanding hands-on skill, but practising it to a pass standard builds it. Practice is the only route — no job-aid can do it for her. She "+pracWord+".");
+  h+=`<div class="rung"><b>Can she physically do the skilled part?</b> ${ev.rungs.ShowsHow===null?'<i>no hands-on skill in this step</i>':pillN(ev.rungs.ShowsHow)}<br>
+    <span class="small muted">${showsBody}${ev.rungs.ShowsHow===null?"":" Has she built it in training? "+pillN(ev.terms.skillAcq)+". Will it still be there at the real moment? "+pillN(ev.terms.skillSustained)+"."}</span></div>`;
+  const fitts=(ev.code.B==="Hard"&&sc.emergency&&t===0)?" Right at the end of the course a high-pressure hands-on skill isn't automatic yet, so it reads borderline even when freshly built.":"";
+  h+=`<div class="rung"><b>Can she do it reliably at the real moment — and months later?</b> ${ev.rungs.Does==="REFERRED"?'<i>referred out</i>':pillN(ev.rungs.Does)}<br>
+    <span class="small muted">This comes out as the weaker of two things: whether the <i>skill</i> survives over time (${ev.terms.skillSustained===null?"no skill part here":pillN(ev.terms.skillSustained)}) and whether the <i>knowledge</i> is to hand (${pillN(ev.terms.ka)}). A job-aid keeps the knowledge available, but never the skill — only practice and refreshers do that.${fitts}</span></div>`;
+  if(ev.completenessCapped){ const lvlWord={0:"none of the list",1:"only a partial cue",2:"the full list"}[ev.doesKnowledge];
+    h+=`<div class="rung" style="border-color:var(--offtarget)"><b>It's a checklist step.</b> <span class="small muted">Doing it reliably means not missing any item, and that needs the list printed on a usable chart — memory alone drops items. Right now the chart carries ${lvlWord}. Printing the full checklist on a usable chart would lift it.</span></div>`;}
+  if(ev.scopeNote) h+=`<div class="rung" style="border-color:var(--na)"><b>Whose job is it?</b> <span class="small muted">${ev.scopeNote}</span></div>`;
+  if(ev.integrityCap) h+=`<div class="rung" style="border-color:var(--offtarget)"><b>The programme's own materials are inconsistent here.</b> <span class="small muted">${ev.code.integrityNote?("Specifically, "+ev.code.integrityNote+". "):"They misstate or leave out a needed element. "}Even a capable person can't reliably do a step the materials themselves get wrong, so the best this can read is borderline. A faithful simplification (e.g. a plain “improving / not improving” instead of a number) would <i>not</i> be penalised.</span></div>`;
+  let reachedWord={Knows:"knows the step",KnowsHow:"can make the decision",ShowsHow:"can show the skill in training",Does:"can do it for real at the moment of need"}[ev.rating.reached]||ev.rating.reached;
+  if(ev.rating.reached==="Does") reachedWord = ev.rating.level==="C" ? "can do it reliably for real, and months later" : "can do it for real, but not yet reliably";
+  h+=`<div class="rung" style="border-color:#1b7837"><b>Overall</b> — she reliably gets as far as: <b>${reachedWord}</b>. <span class="small muted">How likely she is to reach that: <b>${b.label}</b>${(!opt.fiveBand&&b.band!=="NA")?` (${b.robust?"firm":"⚠ could flip with a one-step change in the coding"})`:""}.</span></div>`;
+  h+=`<div class="rec"><b>What would help most:</b><ul>${recommendations(ev).map(r=>"<li>"+r+"</li>").join("")}</ul></div>`;
+  document.getElementById("drillHost").innerHTML=h;
+}
+
+/* ---- Verification (§6) — canonical engine: all toggles ON, weakest-link ---- */
+const ANCHOR_OPT={fiveBand:true,repfit:true,aid:true,nodouble:true,integrity:true};
+function levelAt(p,c,s,t){return evaluateCell(p,c,s,t,ANCHOR_OPT,"A").rating.level;}
+function renderVerify(){
+  const checks=[];
+  // A1: HBB x SN, F5, regular LDHF -> Does clears and holds at 6 months
+  {
+    const l6=levelAt("HBB","SN","F5",6);
+    checks.push({n:"A1", desc:"HBB × staff nurse, F5 ventilation, regular LDHF → Does clears and holds at 6 months.",
+      got:`F5 @6mo level = ${l6}`, pass:l6==="C"});
+  }
+  // A2/A3: same cadence=none -> Does fails by 6mo; Knows stays up.
+  // Use NSSK x SN F5 (NSSK cadence = None) as the no-reinforcement instance.
+  {
+    const ev=evaluateCell("NSSK","SN","F5",6,ANCHOR_OPT,"A");
+    const doesFail = ev.rungs.Does===OUT.Fails;
+    const knowsUp = ev.rungs.Knows>=OUT.Clears || ev.rungs.Knows>=OUT.Strained;
+    checks.push({n:"A2", desc:"Same step, cadence = none → Does fails by 6 months (NSSK × SN, F5).",
+      got:`Does = ${pillText(ev.rungs.Does)}`, pass:doesFail});
+    checks.push({n:"A3", desc:"…while Knows stays up (knowledge decays slower than skill).",
+      got:`Knows = ${pillText(ev.rungs.Knows)}`, pass: ev.rungs.Knows>=OUT.Strained});
+  }
+  // A5: mastery-practised trainable skill -> Shows-how clears for a mid/low cadre.
+  {
+    const ev=evaluateCell("HBB","ANM","F2",0,ANCHOR_OPT,"A"); // F2 trainable, HBB mastery, ANM low cadre
+    checks.push({n:"A5", desc:"Mastery-practised trainable skill → Shows-how clears for a mid/low cadre (HBB × ANM, F2 trainable).",
+      got:`Shows-how = ${pillText(ev.rungs.ShowsHow)}`, pass: ev.rungs.ShowsHow===OUT.Clears});
+  }
+  // A7: emergency step at t=0 -> not automatic (capped Strained).
+  {
+    const ev=evaluateCell("HBB","SN","F5",0,ANCHOR_OPT,"A");
+    const ss0=ev.terms.skillSustained;
+    checks.push({n:"A7", desc:"Emergency motor step at t=0 → not automatic (skill capped Strained — Fitts).",
+      got:`skill sustained @t=0 = ${pillText(ss0)}`, pass: ss0!==null && ss0<=OUT.Strained});
+  }
+  // §6.5a: NSSK x ANM on integrity-flawed/off-chart steps (F8) -> stalls low.
+  {
+    const l=levelAt("NSSK","ANM","F8",6);
+    checks.push({n:"6.5a", desc:"NSSK × ANM on the integrity-flawed / off-chart step F8 → stalls low.",
+      got:`F8 @6mo level = ${l}`, pass: l==="F"||l==="S"});
+  }
+  // §6.5b: NRP x MO on-target -> climbs with a retention caveat at t=6mo (low exposure x 2-yr cadence).
+  {
+    const l0=levelAt("NRP","MO","F5",0), l6=levelAt("NRP","MO","F5",6);
+    const ev6=evaluateCell("NRP","MO","F5",6,ANCHOR_OPT,"A");
+    const caveat = ev6.rungs.Does<OUT.Clears; // retention caveat shows at Does
+    checks.push({n:"6.5b", desc:"NRP × MO on-target → climbs, with a retention caveat at t=6mo (low exposure × 2-yr/Infrequent cadence).",
+      got:`F5 t0=${l0}, t6=${l6}; Does@6mo=${pillText(ev6.rungs.Does)}`, pass: (l0==="C"||l0==="S") && caveat});
+  }
+  let h='<table><thead><tr><th>Anchor</th><th>Check</th><th>Engine result</th><th>Status</th></tr></thead><tbody>';
+  let allpass=true;
+  for(const ck of checks){
+    if(!ck.pass) allpass=false;
+    h+=`<tr><td><b>${ck.n}</b></td><td>${ck.desc}</td><td class="small">${ck.got}</td>
+      <td class="${ck.pass?"pass":"fail"}">${ck.pass?"PASS":"FAIL"}</td></tr>`;
+  }
+  h+='</tbody></table>';
+  h+=`<p style="margin-top:10px" class="${allpass?"pass":"fail"}">Overall: ${allpass?"ALL ANCHORS PASS":"SOME ANCHORS FAIL"}</p>`;
+  document.getElementById("verifyHost").innerHTML=h;
+  return {checks, allpass};
+}
+function pillText(v){ if(v===null)return"skip"; if(v==="REFERRED")return"referred-out";
+  return {0:"Fails",1:"Strained",2:"Clears"}[v]; }
+
+/* ---- Complexity audit ---- */
+function cellSignature(opt,comb,t){
+  // produce a stable signature of all 99 cells' bands
+  const sig={};
+  for(const p of PROGS) for(const c of CADRE_ORDER) for(const s of STEPS){
+    sig[p+c+s]=bandOf(p,c,s,t,opt,comb).band;
+  }
+  return sig;
+}
+function countDiff(a,b){
+  let n=0, list=[];
+  for(const k in a){ if(a[k]!==b[k]){ n++; list.push(k+": "+a[k]+"→"+b[k]); } }
+  return {n,list};
+}
+function renderAudit(){
+  const t=currentTime();
+  const baseOpt={fiveBand:true,repfit:true,aid:true,nodouble:true,integrity:true};
+  const baseSig=cellSignature(baseOpt,"A",t);
+  const toggles=[
+    {key:"fiveBand", name:"5-band output (off = 3-level + robustness flag)"},
+    {key:"repfit",   name:"representational fit (aid form × density × literacy)"},
+    {key:"aid",      name:"aid carries knowledge (offload — held OR on a usable aid, at Knows & Does)"},
+    {key:"nodouble", name:"no-double-count"},
+    {key:"integrity",name:"integrity cap (distorted in-scope → ≤Strained)"}
+  ];
+  let rows=[];
+  for(const tg of toggles){
+    const o=Object.assign({},baseOpt); o[tg.key]=false;
+    const sig=cellSignature(o,"A",t);
+    const d=countDiff(baseSig,sig);
+    rows.push({name:tg.name, n:d.n, list:d.list});
+  }
+  // combiner B / C vs A
+  for(const comb of ["B","C"]){
+    const sig=cellSignature(baseOpt,comb,t);
+    const d=countDiff(baseSig,sig);
+    rows.push({name:`combiner ${comb} (vs weakest-link A)`, n:d.n, list:d.list});
+  }
+  const maxN=Math.max(1,...rows.map(r=>r.n));
+  let h=`<p class="small muted">Time point: t=${t===0?"0":"≈6mo"}. Baseline = all toggles ON, combiner A. Out of 99 cells.</p>`;
+  h+='<table><thead><tr><th>Component</th><th>Cells changed</th><th>Magnitude</th></tr></thead><tbody>';
+  for(const r of rows){
+    h+=`<tr><td>${r.name}</td><td><b>${r.n}</b> / 99</td>
+      <td><span class="auditbar" style="width:${Math.round(r.n/maxN*180)}px"></span></td></tr>`;
+    if(r.n>0){
+      h+=`<tr><td colspan="3" class="small muted">${r.list.join(" · ")}</td></tr>`;
+    }
+  }
+  h+='</tbody></table>';
+  document.getElementById("auditHost").innerHTML=h;
+}
+
+/* ---- Inputs tab ---- */
+function renderInputs(){
+  // cadre table
+  let h='<table><thead><tr><th>Cadre</th><th>R1 reasoning</th><th>R3 literacy/num</th><th>R4 train-currency</th><th>R2 exposure</th><th>WMeff</th><th>Sbase</th><th>Entr</th></tr></thead><tbody>';
+  for(const c of CADRE_ORDER){
+    const cc=CADRES[c], d=cadreDerived(cc);
+    const inv={1:"Low",2:"Mod",3:"High"};
+    h+=`<tr><td><b>${c}</b> ${cc.label}</td><td>${inv[cc.R1]}</td><td>${inv[cc.R3]}</td><td>${inv[cc.R4]}</td><td>${inv[cc.R2]}${cc.wrongKindExposure?' <span class="tag naflag">wrong-kind</span>':''}</td><td>${d.WMeff}</td><td>${d.Sbase}</td><td>${d.Entr}</td></tr>`;
+  }
+  h+='</tbody></table>';
+  document.getElementById("cadreInputs").innerHTML=h;
+
+  // step constants
+  let hc='<table><thead><tr><th>Step</th><th>Emergency</th><th>Decay-proneness</th><th>People required</th></tr></thead><tbody>';
+  for(const s of STEPS){
+    const sc=STEP_CONST[s];
+    hc+=`<tr><td>${STEP_LABELS[s]}</td><td>${sc.emergency?"Yes":"No"}</td><td>${sc.decay}</td><td>${sc.people}${sc.people>1?' <span class="tag naflag">⚑ &gt;1</span>':''}</td></tr>`;
+  }
+  hc+='</tbody></table><p class="small muted">F4 decay coded "Low–Mod" in the source; engine treats it as Moderate (conservative). Flagged.</p>';
+  document.getElementById("constInputs").innerHTML=hc;
+
+  // per-programme coding
+  let hp="";
+  for(const p of PROGS){
+    hp+=`<h4 style="margin:14px 0 4px">${p} — cadence: <span class="tag">${POSTPLAN[p].cadence}</span> · work-env: <span class="tag prov">${POSTPLAN[p].work}</span> · job-aid form: pictorial ${pictLevel(AID_FORM[p].pictorial)}, density ${densityKey(p)} (${AID_FORM[p].itemsPerBox||"?"}/box), navigation ${navLevel(p)}</h4>`;
+    hp+='<table><thead><tr><th>Step</th><th>A cog</th><th>B motor</th><th>D decid</th><th>E exec</th><th>F integrity</th><th>G scope</th><th>bedside</th><th>ref-value</th><th>practice</th><th>sim</th><th>displace-flag</th></tr></thead><tbody>';
+    for(const s of STEPS){
+      const x=CODING[p][s];
+      const naf=(v)=> (v==="N/A"||v==="NA"||v==="Referred-out")?`<span class="tag naflag">${v}</span>`:v;
+      hp+=`<tr><td>${s}</td><td>${naf(x.A)}</td><td>${naf(x.B)}</td><td>${naf(x.D)}</td><td>${naf(x.E)}</td><td>${naf(x.F==="NA"?"N/A":x.F)}</td><td>${naf(x.G)}</td><td>${naf(x.bedside)}</td><td>${naf(x.ref)}</td><td>${naf(x.prac)}</td><td>${x.sim?"Yes":"No"}</td><td>${x.displaceFlag===null?'<span class="tag naflag">indeterminate</span>':x.displaceFlag}</td></tr>`;
+    }
+    hp+='</tbody></table>';
+  }
+  hp+=`<p class="small muted" style="margin-top:10px"><b>Transcription notes / cells not confidently codeable:</b><br>
+   • <b>displace-flag</b> (per-step "contradicts a habituated prior practice"): NOT present in the locked coding files. The cadre file names displacement as the staff-nurse binding constraint "on steps that contradict entrenched habit" but does not enumerate which F-steps. Encoded <b>indeterminate (null → treated as false)</b> for all 33 cells rather than invented. With the displacement toggle ON it therefore changes 0 cells until specific step-flags are supplied.<br>
+   • <b>F4 decay-proneness</b> = "Low–Mod" in the source; encoded as Moderate (conservative).<br>
+   • <b>NSSK F9</b> bedside = "On-aid (referral cue only)" — encoded On-aid; substance Absent (ref-value). F9 scope Referred-out but action IS named (B=Hard), unlike HBB F9 (fully N/A).<br>
+   • <b>Work-environment</b> + all <b>bedside</b> cells are provisional (deployment / visual pass pending) per the coding files; not used by the engine's scored rungs except bedside (offloading).<br>
+   • NRP cadence encoded <b>Infrequent</b> (programme default 2-yr renewal); the optional RQI quarterly LDHF upgrade is NOT encoded as the headline cadence.</p>`;
+  document.getElementById("progInputs").innerHTML=hp;
+}
+
+/* ---- view switching + wiring ---- */
+function switchView(v){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.v===v));
+  document.querySelectorAll(".view").forEach(el=>el.classList.toggle("active",el.id==="view-"+v));
+  if(v==="grid"){renderGrid();renderRecs();}
+  if(v==="drill")renderDrill();
+  if(v==="editprog")renderProgrammeEditor();
+  if(v==="editcadre")renderCadreEditor();
+  if(v==="guide")renderGuide();
+  if(v==="science")renderScience();
+}
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>switchView(t.dataset.v));
+
+/* ===================================================================
+   PORTAL — editors, presets, recommendations, save/load, guide
+   =================================================================== */
+const FIELD_OPTS = {
+  A:["Low","Mod","High"], B:["None","Trainable","Hard"], D:["Clear","Partial","Ambiguous"],
+  concurrency:["Low","Mod","High"],
+  F:["Consistent","Minor","Distorted"], G:["Included","Referred-out"],
+  bedside:["On-aid","Partial","Manual-only","Absent","Referred-out"],
+  ref:["On-aid","Manual-only","Absent","N/A"],
+  prac:["Practised-to-mastery","Practised-no-standard","Lectured-only"],
+  kenc:["Multimodal","Illustrated","Text"]
+};
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
+function optSelect(field, val, handler){
+  const opts=FIELD_OPTS[field].slice(); if(!opts.includes(val)) opts.unshift(val);
+  return `<select onchange="${handler}">`+opts.map(o=>`<option ${o===val?"selected":""}>${esc(o)}</option>`).join("")+`</select>`;
+}
+const LVLOPTS=[["1","Low"],["2","Mod"],["3","High"]];
+function lvlSelect(val, handler){return `<select onchange="${handler}">`+LVLOPTS.map(([v,t])=>`<option value="${v}" ${(+val===+v)?"selected":""}>${t}</option>`).join("")+`</select>`;}
+function pickSelect(arr, cur, handler){return `<select onchange="${handler}">`+arr.map(o=>`<option ${o.split(' ')[0]===String(cur).split(' ')[0]?"selected":""}>${esc(o)}</option>`).join("")+`</select>`;}
+
+/* Operational codebook surfaced at the point of coding — drives tooltips, anchored option labels,
+   and the "Coding rules" reference. Definitions/counting rules are from TRACE_appraisal_codebook.md
+   §3 so two raters converge on the same value. levels = [value, full anchor, short inline]. */
+const CODE_RULES = {
+  A:{def:"Cognitive demand — count the facts / parameters / steps the provider must hold or recall to do this step (knowledge volume, ~Cowan 4 chunks).",
+     levels:[["Low","a single cue → a single action (1 element)","1"],["Mod","2–3 interacting elements / decisions","2–3"],["High","≥4 interacting elements, or a multi-step calculation","≥4"]]},
+  B:{def:"Perceptual-motor skill demand — the hands/eyes skill the step needs (NOT how much to know).",
+     levels:[["None","no manual action — a pure decision or a trivial cue"],["Trainable","a teachable hands-on action or real perception, masterable in a workshop"],["Hard","a hard-to-see sign or fine manual act with a steep curve (e.g. mask seal, subtle chest rise)"]],
+     rubric:["Is there a hands-on action to perform, beyond making a decision? If no → None.","Can it be brought to a reliable standard within a training workshop? If yes → Trainable.","Does dependable performance need sustained, supervised real-case experience (a steep learning curve)? If yes → Hard."]},
+  concurrency:{def:"Concurrency — count the distinct signs/cues that must be perceived and integrated AT ONCE to reach the judgement. Non-offloadable (a chart can't integrate them). Do NOT count signs you check one after another.",
+     levels:[["Low","one decisive cue (e.g. “crying?”)","1"],["Mod","2 signs judged together","2"],["High","≥3 signs integrated simultaneously (e.g. term + tone + breathing)","≥3"]]},
+  D:{def:"Decidability — is it stated WHEN to act? (GLIA decidability).",
+     levels:[["Clear","an explicit, unambiguous trigger is stated"],["Partial","a trigger is present but vague / qualitative"],["Ambiguous","no stated trigger, or conflicting triggers"]],
+     rubric:["Is it stated exactly when to act — an explicit trigger or threshold? If yes → Clear.","Is a trigger given but only in vague or qualitative terms? → Partial.","Is no trigger stated, or do the documents give different triggers? → Ambiguous."]},
+  F:{def:"Integrity — internal consistency across the programme's OWN documents + faithful simplification of the ILCOR core (judged at the time of publication; raw currency is reported separately).",
+     levels:[["Consistent","internally consistent; any simplification is faithful to the core"],["Minor","a small inconsistency that does not change the action taken"],["Distorted","an element is missing, or the documents call for different actions"]],
+     rubric:["Is this step described consistently across all the programme's documents?","Does any simplification still preserve the essential, life-saving core of the step?","If both yes → Consistent. A small wording or figure mismatch that doesn't change the action → Minor. An element is missing, or two documents call for different actions → Distorted."]},
+  G:{def:"Scope — is this step part of the programme for this cadre, or explicitly handed off? Referring out is a valid design choice, not a failure.",
+     levels:[["Included","the step is part of this programme"],["Referred-out","explicitly handed to a higher level / facility"]]},
+  bedside:{def:"Bedside availability — read from the CHART IMAGE: is the step's action + act-now cue ON the bedside aid, reachable at a glance?",
+     levels:[["On-aid","action + act-now cue on the chart, at a glance"],["Partial","the cue is on the chart but the detail is off-chart"],["Manual-only","only in the manual, not on the bedside chart"],["Absent","not present anywhere"],["Referred-out","step handed off (N/A)"]]},
+  ref:{def:"Reference-value encoding — for a step that carries a PRECISE value (dose / rate / threshold / count method), is that value printed on the chart? (read from the image)",
+     levels:[["On-aid","the precise value is printed on the chart"],["Manual-only","the value is only in the manual"],["Absent","the value is not stated anywhere"],["N/A","the step carries no precise value"]]},
+  prac:{def:"Practice intensity — how the skill is taught, from the facilitator / training materials.",
+     levels:[["Practised-to-mastery","practised to a defined pass standard with feedback (mastery learning)"],["Practised-no-standard","learners practise, but there is no pass criterion"],["Lectured-only","described or demonstrated only — no learner practice"]]},
+  kenc:{def:"Teaching encoding — how the KNOWLEDGE for this step is taught. Read this from the FACILITATOR MANUAL / training materials (where the teaching lives), not from the bedside wall chart (that is scored separately). It raises what a low-literacy provider holds in memory — helps the ANM most, the MO not at all.",
+     levels:[["Multimodal","narrated visuals + worked examples + repeated exposure (a well-designed instructional video / pictorial teaching sequence)"],["Illustrated","static pictures or a single demonstration (incl. a demonstration video)"],["Text","the knowledge is read or told, text/verbal only"]]}
+};
+function ruleTip(f){ const r=CODE_RULES[f]; if(!r) return ""; return r.def+"\n"+r.levels.map(l=>"• "+l[0]+": "+l[1]).join("\n"); }
+/* Click pop-up showing a field's definition, level anchors and (for judgement fields) a neutral
+   quick-check rubric — the reliable alternative to native title tooltips (which only hover). */
+function showInfo(ev, field){
+  ev.stopPropagation();
+  let pop=document.getElementById("cb-pop");
+  if(!pop){ pop=document.createElement("div"); pop.id="cb-pop";
+    pop.style.cssText="position:fixed;z-index:9999;max-width:360px;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.18);padding:11px 13px;font-size:13px;line-height:1.5;color:var(--ink)";
+    document.body.appendChild(pop);
+    document.addEventListener("click",()=>{ pop.style.display="none"; });
+  }
+  const r=CODE_RULES[field]; if(!r) return;
+  let html="<div style='font-weight:600;margin-bottom:3px;font-size:14px'>"+esc(COL_LABEL[field]||field)+"</div>";
+  html+="<div style='color:var(--muted);margin-bottom:7px'>"+esc(r.def)+"</div>";
+  html+=r.levels.map(l=>"<div style='margin:3px 0'><b>"+esc(l[0])+"</b> — "+esc(l[1])+"</div>").join("");
+  if(r.rubric) html+="<div style='margin-top:8px;border-top:1px solid var(--line);padding-top:7px'><b>Quick check</b><ul style='margin:5px 0 0;padding-left:18px'>"+r.rubric.map(q=>"<li style='margin:3px 0'>"+esc(q)+"</li>").join("")+"</ul></div>";
+  pop.innerHTML=html; pop.style.display="block";
+  const w=360, x=Math.min(ev.clientX-20, window.innerWidth-w-10), y=ev.clientY+16;
+  pop.style.left=Math.max(8,x)+"px"; pop.style.top=Math.max(8, Math.min(y, window.innerHeight-260))+"px";
+}
+function codeSelect(field, val, handler){
+  const r=CODE_RULES[field]; if(!r) return optSelect(field,val,handler);
+  const opts=r.levels.slice(); if(!opts.find(o=>o[0]===val)) opts.unshift([val,""]);
+  return `<select title="${esc(ruleTip(field))}" onchange="${handler}">`+
+    opts.map(o=>`<option value="${esc(o[0])}" ${o[0]===val?"selected":""}>${esc(o[0]+(o[2]?" ("+o[2]+")":""))}</option>`).join("")+`</select>`;
+}
+const COL_LABEL={A:"Cognitive demand",B:"Skill demand",concurrency:"Concurrency",D:"Decidability",F:"Integrity",G:"Scope",bedside:"Bedside availability",ref:"Reference value",prac:"Practice",kenc:"Teaching encoding"};
+const STEP_FIELDS=["A","B","concurrency","D","F","G","bedside","ref","prac","kenc"];
+function codingRulesHTML(){
+  let h=`<details style="margin:4px 0 10px"><summary style="cursor:pointer;font-weight:600;color:var(--accent)">Coding rules — read before coding (for inter-rater consistency)</summary>`;
+  h+=`<div style="font-size:13px;line-height:1.55;margin:8px 0">
+    <p style="margin:4px 0"><b>Discipline.</b> Code from the documents alone (engine-blind). For each cell, first paste the verbatim quote or name the figure + page, then apply the rule below — never decide the level first and hunt for support. “Indeterminate / not stated” is a valid code. A second coder working blind from the same sources and these rules should reach the same value; reconcile any disagreement by re-reading, not negotiation.</p>
+    <table class="grid"><thead><tr><th style="width:160px">Field</th><th>What it means</th><th style="width:44%">Levels</th></tr></thead><tbody>`;
+  const NUMFIELD=new Set(["A","concurrency"]);
+  for(const f of STEP_FIELDS){const r=CODE_RULES[f];
+    const lv = NUMFIELD.has(f)
+      ? "<i>enter the count → </i>"+r.levels.map(l=>"<b>"+esc(l[2]||"")+"</b> "+esc(l[0])).join(" · ")+"<br><span class='small muted'>"+r.levels.map(l=>esc(l[0])+" = "+esc(l[1])).join("; ")+"</span>"
+      : r.levels.map(l=>"<b>"+esc(l[0])+"</b> — "+esc(l[1])).join("<br>");
+    h+=`<tr><td><b>${COL_LABEL[f]}</b></td><td>${esc(r.def)}</td><td>${lv}</td></tr>`;}
+  h+=`</tbody></table></div></details>`;
+  return h;
+}
+/* ---- Worked coding examples (a fictional programme "Breathe-First") ---- */
+const BF_INTRO = `The worked examples all use one <b>fictional</b> programme, <b>Breathe-First</b> — invented, not NSSK / HBB / NRP — so the reasoning hangs together and you are not anchored to the real programmes. Assume Breathe-First has: a colour-coded wall chart with section headings, flow arrows, most functions in their own box, a few pictograms, and the ventilation rate printed on it; a mostly-text facilitator manual that also has a labelled equipment photo, a mask-hold diagram, and a demonstration video for ventilation and its corrections; ventilation practised to a pass standard, other hands-on steps practised without a standard, advanced support only lectured; a 5-minute on-site practice every month; and (frontline version) advanced support referred out. Two deliberate quirks show integrity coding: the stimulation count differs slightly between the manual and flip chart (a <b>Minor</b> issue at F2), and the heart-rate escalation threshold reads &lt;60 in the manual but &lt;80 on the chart (a contradiction → <b>Distorted</b> at F8).<br><br><b>Two reminders raters get wrong most:</b> <b>Concurrency</b> counts signs / decisions integrated at the same instant to make a call — NOT the motor coordination of a trained skill (that is Skill demand); a single cue counts as 1 (Low). <b>Teaching encoding</b> is read from the <b>facilitator manual / training materials</b> (how the knowledge is taught), not from the wall chart. Click <b>example</b> on any step below to see it coded.`;
+const EXAMPLES = {
+  F0:{what:"getting ready before birth — equipment, warmth, a plan, roles.",ctx:"the manual lists the equipment as a numbered text list with one labelled photo; the wall chart starts at birth, so prep is not on it; the facilitator demonstrates assembling the bag-mask once.",rows:[["Cognitive demand","4 (High)","several distinct items to have ready and check — a sizeable list to hold."],["Skill demand","Trainable","assembling / checking the bag-mask-suction is a basic hands-on task."],["Concurrency","1 (Low)","checked one item at a time, before birth."],["Decidability","Clear","&lsquo;before every birth&rsquo; — an explicit trigger."],["Integrity","Consistent","manual and chart agree; nothing core missing."],["Scope","Included",""],["Bedside availability","Manual-only","prep is not on the wall chart."],["Reference value","N/A","no precise value to print."],["Practice","Practised-no-standard","assembly is practised, but no pass criterion."],["Teaching encoding","Illustrated","the manual carries a labelled equipment photo (a static picture)."]]},
+  F1:{what:"the first read of the baby to decide if it needs help.",ctx:"the cue is a single question, is the baby crying — stated as a sentence in the manual and shown on the chart.",rows:[["Cognitive demand","1 (Low)","one cue &rarr; one branch."],["Skill demand","None","&lsquo;crying?&rsquo; is a loud, obvious signal — no trained perception."],["Concurrency","1 (Low)","a single decisive cue."],["Decidability","Clear","&lsquo;not crying &rarr; resuscitate&rsquo; is explicit."],["Integrity","Consistent",""],["Scope","Included",""],["Bedside availability","On-aid","the cue is on the chart."],["Reference value","N/A",""],["Practice","Practised-no-standard",""],["Teaching encoding","Text","the manual just states the cue in words."]]},
+  F2:{what:"dry, warm, position, clear the airway, stimulate.",ctx:"taught as a sequence, with a positioning diagram; the manual says rub the back 2&ndash;3 times but the flip chart says once or twice.",rows:[["Cognitive demand","3 (Mod)","a handful of ordered actions to remember."],["Skill demand","Trainable","positioning, gentle suction, stimulation are teachable handling actions."],["Concurrency","1 (Low)","a sequence — one action per instant."],["Decidability","Clear","the order and when are stated."],["Integrity","Minor","the stimulation count differs between documents but does not change what is done."],["Scope","Included",""],["Bedside availability","On-aid",""],["Reference value","N/A",""],["Practice","Practised-no-standard",""],["Teaching encoding","Illustrated","a positioning diagram in the manual."]],note:"Integrity note to record: stimulation count differs — 2&ndash;3 in the manual vs 1&ndash;2 on the flip chart."},
+  F3:{what:"when and how to clamp / cut the cord.",ctx:"a timing rule in the manual text.",rows:[["Cognitive demand","2 (Mod)","the timing rule plus the exception (don&rsquo;t delay if the baby needs help)."],["Skill demand","Trainable","clamp-and-cut is a simple manual act."],["Concurrency","1 (Low)",""],["Decidability","Clear",""],["Integrity","Consistent",""],["Scope","Included",""],["Bedside availability","On-aid",""],["Reference value","N/A",""],["Practice","Practised-no-standard",""],["Teaching encoding","Text",""]]},
+  F4:{what:"recognising the baby needs help and deciding to start ventilation.",ctx:"one binary decision on the chart and in the text.",rows:[["Cognitive demand","1 (Low)","a single decision."],["Skill demand","None","it is a call; the motor act is F5."],["Concurrency","1 (Low)",""],["Decidability","Clear","&lsquo;not breathing after stimulation &rarr; ventilate&rsquo;."],["Integrity","Consistent",""],["Scope","Included",""],["Bedside availability","On-aid",""],["Reference value","N/A",""],["Practice","Practised-no-standard",""],["Teaching encoding","Text",""]]},
+  F5:{what:"delivering effective bag-and-mask ventilation.",ctx:"taught with a demonstration video, a mask-hold diagram, and monthly hands-on practice to a pass standard; the rate is printed on the chart.",rows:[["Cognitive demand","3 (Mod)","the rate, the seal, and the chest-rise target to hold."],["Skill demand","Hard","a good mask seal and reading chest rise is a steep skill."],["Concurrency","1 (Low)","the seal + squeeze + watch IS the motor skill (scored under Skill demand), not separate signs to integrate."],["Decidability","Clear",""],["Integrity","Consistent",""],["Scope","Included",""],["Bedside availability","On-aid",""],["Reference value","On-aid","the ventilation rate is printed on the chart."],["Practice","Practised-to-mastery","practised to a defined pass standard."],["Teaching encoding","Multimodal","demonstration video + diagram + repeated monthly practice."]]},
+  F6:{what:"the corrective sequence when ventilation is not working (MR SOPA-type).",ctx:"the corrective steps are itemised, with the same demonstration video.",rows:[["Cognitive demand","3 (Mod)","the ordered corrections to run through."],["Skill demand","Hard","re-seating the mask and titrating pressure under failure is the hard bag-mask skill again."],["Concurrency","1 (Low)","read chest-rise (one sign), then apply corrections in order."],["Decidability","Clear",""],["Integrity","Consistent",""],["Scope","Included",""],["Bedside availability","On-aid","the corrective steps are itemised on the chart."],["Reference value","N/A",""],["Practice","Practised-to-mastery",""],["Teaching encoding","Multimodal","covered in the demonstration video."]]},
+  F7:{what:"checking the heart rate.",ctx:"auscultate and count over 6 seconds; a picture shows where to listen; the count-method detail sits in the manual, not on the chart.",rows:[["Cognitive demand","3 (Mod)","the method plus the thresholds to interpret against."],["Skill demand","Hard","hearing and counting a faint neonatal heart rate accurately is hard-to-perceive."],["Concurrency","1 (Low)","reading the heart rate is one value."],["Decidability","Clear",""],["Integrity","Consistent",""],["Scope","Included",""],["Bedside availability","On-aid","the cue is on the chart, but see Reference value."],["Reference value","Manual-only","the 6-second count method is not printed on the chart."],["Practice","Practised-no-standard",""],["Teaching encoding","Illustrated","a picture of the auscultation site."]]},
+  F8:{what:"what to do based on the heart rate.",ctx:"three bands with actions and a reassessment loop — but the manual says escalate below 60 while the wall chart says below 80.",rows:[["Cognitive demand","4 (High)","three HR bands, each with an action, plus a reassessment loop."],["Skill demand","None","it is a decision; the actions live in F9."],["Concurrency","1 (Low)","one threshold comparison at a time."],["Decidability","Clear","a threshold is stated — though the value conflicts (see Integrity)."],["Integrity","Distorted","the manual and the chart give different thresholds (&lt;60 vs &lt;80) — the documents do not agree."],["Scope","Included",""],["Bedside availability","Partial","the escalation cue is on the chart, but the correct threshold is not reliably carried."],["Reference value","Manual-only",""],["Practice","Lectured-only","the escalation logic is only talked through."],["Teaching encoding","Text",""]],note:"Integrity note to record: escalation threshold conflicts — manual &lt;60, wall chart &lt;80."},
+  F9:{what:"compressions, intubation, drugs.",ctx:"in the Breathe-First frontline version, referred out to a higher facility.",rows:[["Scope","Referred-out","the programme explicitly hands this step to a referral centre."],["Everything else","not scored here","a referred-out step is judged only on whether the worker recognises it and refers — so you code Scope = Referred-out and move on."]],note:"If a higher-tier version INCLUDES F9, you would code it fully — and it would carry the advanced-skill scope gate (a non-physician cadre cannot be trained to intubate, so it reads recognise-and-refer regardless)."},
+  F10:{what:"monitoring after the event, and safe referral.",ctx:"monitoring intervals are stated; the referral criteria are only loosely described.",rows:[["Cognitive demand","3 (Mod)","monitoring parameters + intervals + referral criteria."],["Skill demand","Trainable","monitoring and safe-transport setup are teachable."],["Concurrency","1 (Low)","a sequence of timed checks."],["Decidability","Partial","the referral criteria are stated only loosely."],["Integrity","Consistent",""],["Scope","Included",""],["Bedside availability","On-aid",""],["Reference value","N/A",""],["Practice","Practised-no-standard",""],["Teaching encoding","Text",""]]}
+};
+function showExample(step){
+  const e=EXAMPLES[step]; if(!e) return;
+  let m=document.getElementById("ex-modal");
+  if(!m){ m=document.createElement("div"); m.id="ex-modal";
+    m.style.cssText="position:fixed;inset:0;z-index:9998;background:rgba(20,35,55,.45);display:flex;align-items:flex-start;justify-content:center;padding:5vh 16px;overflow:auto";
+    m.addEventListener("click",ev=>{ if(ev.target===m) m.style.display="none"; });
+    document.body.appendChild(m);
+  }
+  const rows=e.rows.map(r=>`<tr><td style="font-weight:600;white-space:nowrap;padding:5px 12px 5px 0;vertical-align:top;font-size:12.5px">${r[0]}</td><td style="padding:5px 12px 5px 0;vertical-align:top;white-space:nowrap"><span class="tag">${r[1]}</span></td><td style="padding:5px 0;color:var(--muted);font-size:12.5px">${r[2]}</td></tr>`).join("");
+  m.innerHTML=`<div style="background:#fff;max-width:780px;width:100%;border-radius:12px;box-shadow:0 14px 44px rgba(0,0,0,.28);padding:20px 24px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+      <h3 style="margin:0;color:var(--accent);font-size:18px">${STEP_LABELS[step]} — worked example</h3>
+      <button onclick="document.getElementById('ex-modal').style.display='none'">Close</button></div>
+    <p class="small" style="margin:8px 0 4px"><b>What it is:</b> ${e.what}</p>
+    <p class="small muted" style="margin:4px 0 10px"><b>In &ldquo;Breathe-First&rdquo; (fictional):</b> ${e.ctx}</p>
+    <table style="width:100%;border-top:1px solid var(--line)"><tbody>${rows}</tbody></table>
+    ${e.note?`<p class="small" style="margin:12px 0 0;background:#fff6e6;border-left:3px solid var(--b-borderline);padding:8px 11px;border-radius:5px">${e.note}</p>`:""}
+    <p class="small muted" style="margin:12px 0 0">This is a fictional worked example to show the reasoning — code the real programme from its own documents.</p>
+  </div>`;
+  m.style.display="flex";
+}
+
+/* ---- Cadres ---- */
+let _cadreSeq=1;
+function addCadre(label,r1,r3,r4,r2){const k="cad"+(_cadreSeq++);CADRES[k]={label:label||"New cadre",R1:r1||2,R3:r3||2,R4:r4||2,R2:r2||2};CADRE_ORDER.push(k);return k;}
+function removeCadre(k){const i=CADRE_ORDER.indexOf(k);if(i>=0)CADRE_ORDER.splice(i,1);delete CADRES[k];}
+function renderCadreEditor(){
+  let h=`<p class="small muted">Add any number of cadres. Each is four attributes (Low / Mod / High): <b>reasoning R1</b>, <b>literacy/numeracy R3</b>, <b>training-currency R4</b>, and <b>prior exposure R2</b> (recorded, not scored — its effect on trainability is real but sign-ambiguous and asymmetric, see <i>How it works</i>). Effective working memory is derived as round(mean(R1, R3)).</p>`;
+  h+=`<table class="grid"><thead><tr><th>Cadre (label)</th><th>R1 reasoning</th><th>R3 literacy/num</th><th>R4 training-currency</th><th>R2 exposure</th><th>WMeff</th><th></th></tr></thead><tbody>`;
+  for(const k of CADRE_ORDER){const c=CADRES[k];const d=cadreDerived(c);
+    h+=`<tr>
+      <td><input type="text" style="width:230px" value="${esc(c.label||'')}" oninput="CADRES['${k}'].label=this.value;portalRefresh(false)"></td>
+      <td>${lvlSelect(c.R1,`CADRES['${k}'].R1=+this.value;portalRefresh()`)}</td>
+      <td>${lvlSelect(c.R3,`CADRES['${k}'].R3=+this.value;portalRefresh()`)}</td>
+      <td>${lvlSelect(c.R4,`CADRES['${k}'].R4=+this.value;portalRefresh()`)}</td>
+      <td>${lvlSelect(c.R2,`CADRES['${k}'].R2=+this.value;portalRefresh()`)}</td>
+      <td style="text-align:center"><b>${d.WMeff}</b></td>
+      <td><button onclick="if(CADRE_ORDER.length>1){removeCadre('${k}');portalRefresh();}else alert('Keep at least one cadre.')">✕</button></td>
+    </tr>`;}
+  h+=`</tbody></table><p><button onclick="addCadre();portalRefresh()">+ Add cadre</button></p>`;
+  document.getElementById("cadreEditHost").innerHTML=h;
+}
+
+/* ---- Programmes ---- */
+let _curProg = PROGS[0];
+function blankCoding(){const o={};for(const s of STEPS)o[s]={A:3,B:"None",D:"Clear",E:"Clear",F:"Consistent",G:"Included",bedside:"Absent",ref:"N/A",prac:"Practised-no-standard",kenc:"Text",sim:true};return o;}
+function uniqName(base){let nm=base,i=2;while(PROGS.includes(nm))nm=base+" "+(i++);return nm;}
+function addProgramme(){const nm=uniqName("New programme");CODING[nm]=blankCoding();AID_FORM[nm]={legibility:"Adequate",pictorial:0,itemsPerBox:3,colourCoded:false,signposted:false,flowArrows:false,distinctSteps:0};POSTPLAN[nm]={cadence:"None",periodMo:Infinity};PROGS.push(nm);_curProg=nm;return nm;}
+function duplicateProgramme(src){const nm=uniqName(src+" copy");CODING[nm]=JSON.parse(JSON.stringify(CODING[src]));AID_FORM[nm]=JSON.parse(JSON.stringify(AID_FORM[src]));POSTPLAN[nm]=JSON.parse(JSON.stringify(POSTPLAN[src]));PROGS.push(nm);_curProg=nm;return nm;}
+function renameProgramme(old,nn){if(!nn||nn===old)return;if(PROGS.includes(nn)){alert("Name already used.");return;}CODING[nn]=CODING[old];AID_FORM[nn]=AID_FORM[old];POSTPLAN[nn]=POSTPLAN[old];delete CODING[old];delete AID_FORM[old];delete POSTPLAN[old];PROGS[PROGS.indexOf(old)]=nn;_curProg=nn;}
+function removeProgramme(p){if(PROGS.length<=1){alert("Keep at least one programme.");return;}PROGS.splice(PROGS.indexOf(p),1);delete CODING[p];delete AID_FORM[p];delete POSTPLAN[p];_curProg=PROGS[0];}
+function renderProgrammeEditor(){
+  if(!PROGS.includes(_curProg))_curProg=PROGS[0];
+  const p=_curProg, af=AID_FORM[p];
+  let h=`<div class="controls">
+    <label class="sel">Programme <select onchange="_curProg=this.value;renderProgrammeEditor()">${PROGS.map(x=>`<option ${x===p?"selected":""}>${esc(x)}</option>`).join("")}</select></label>
+    <button onclick="addProgramme();renderProgrammeEditor();portalRefresh()">+ New blank</button>
+    <button onclick="duplicateProgramme(_curProg);renderProgrammeEditor();portalRefresh()">Duplicate</button>
+    <button onclick="var n=prompt('Rename programme',_curProg);if(n){renameProgramme(_curProg,n);renderProgrammeEditor();portalRefresh();}">Rename</button>
+    <button onclick="if(confirm('Delete '+_curProg+'?')){removeProgramme(_curProg);renderProgrammeEditor();portalRefresh();}">Delete</button>
+  </div>`;
+  h+=`<h3>The wall chart <span class="small muted">(the bedside job-aid — read from the printed chart; derived ratings in brackets)</span></h3>
+  <div class="controls" style="gap:26px;align-items:flex-end">
+    <label class="sel" title="Count the F0–F10 steps that carry a task illustration on the chart (0–11). ≤3 → Minimal, 4–7 → Partial, ≥8 → Extensive.">Steps with a picture <span class="small muted">(count / 11)</span>
+      <span style="display:flex;gap:7px;align-items:center"><input type="number" min="0" max="11" step="1" value="${(typeof af.pictorial==='number')?af.pictorial:''}" style="width:62px;padding:5px;border:1px solid var(--line);border-radius:5px" onchange="AID_FORM['${p}'].pictorial=(this.value===''?0:+this.value);portalRefresh()"><span class="tag">${pictLevel(af.pictorial)}</span></span></label>
+    <label class="sel" title="Count the distinct actions/decisions in the busiest single box on the chart. ≤2 → Sparse, 3–4 → Moderate, ≥5 → Dense.">Items in the busiest box <span class="small muted">(count)</span>
+      <span style="display:flex;gap:7px;align-items:center"><input type="number" min="0" step="1" value="${(af.itemsPerBox!=null&&af.itemsPerBox!=='')?af.itemsPerBox:''}" style="width:62px;padding:5px;border:1px solid var(--line);border-radius:5px" onchange="AID_FORM['${p}'].itemsPerBox=(this.value===''?0:+this.value);portalRefresh()"><span class="tag">${densityKey(p)}</span></span></label>
+    <label class="sel" title="Count the F0–F10 functions that sit in their OWN clearly-bounded, separately-labelled block (vs crammed into shared boxes), 0–11. ≤5 → Few, 6–9 → Most, ≥10 → All. This caps navigation.">Function differentiation <span class="small muted">(own block / 11)</span>
+      <span style="display:flex;gap:7px;align-items:center"><input type="number" min="0" max="11" step="1" value="${(typeof af.distinctSteps==='number')?af.distinctSteps:''}" style="width:62px;padding:5px;border:1px solid var(--line);border-radius:5px" onchange="AID_FORM['${p}'].distinctSteps=(this.value===''?0:+this.value);portalRefresh()"><span class="tag">${diffLevel(af.distinctSteps)}</span></span></label>
+  </div>
+  <div class="controls" style="margin-top:12px;gap:10px;align-items:center">
+    <span style="font-size:13px;font-weight:600">Wayfinding</span> <span class="small muted">— tick what the chart has:</span>
+    <span class="toggle"><input type="checkbox" id="nav_cc" ${af.colourCoded?"checked":""} onchange="AID_FORM['${p}'].colourCoded=this.checked;portalRefresh()"><label for="nav_cc">colour-coded sections</label></span>
+    <span class="toggle"><input type="checkbox" id="nav_sp" ${af.signposted?"checked":""} onchange="AID_FORM['${p}'].signposted=this.checked;portalRefresh()"><label for="nav_sp">section headings</label></span>
+    <span class="toggle"><input type="checkbox" id="nav_fl" ${af.flowArrows?"checked":""} onchange="AID_FORM['${p}'].flowArrows=this.checked;portalRefresh()"><label for="nav_fl">arrows between steps</label></span>
+    <span class="small muted">→ navigation <span class="tag">${navLevel(p)}</span></span>
+  </div>
+  <div style="margin-top:8px">${chartGuideHTML(p)}</div>
+
+  <h3 style="margin-top:18px">Reinforcement after the course <span class="small muted">(the programme's post-course practice plan)</span></h3>
+  <p class="small muted" style="margin:2px 0 8px">How the skill is kept alive after initial training ends — the planned refresher practice and how often it happens.</p>
+  <div class="controls">
+    <label class="sel" title="Reinforcement INTENSITY when it happens. None = no planned practice; Infrequent = a refresher event; Regular LDHF = brief frequent on-site practice; Continuous QI = ongoing data-linked practice.">Reinforcement cadence ${pickSelect(Object.keys(CAD),POSTPLAN[p].cadence,`POSTPLAN['${p}'].cadence=this.value;portalRefresh()`)}</label>
+    <label class="sel" title="Reinforcement INTERVAL: months between reinforcement events. Retention is only protected at the moment of need if an event has occurred within the interval (a 2-yearly renewal = 24 mo gives no protection at 6 months). Leave blank / large for None.">Interval (months)
+      <input type="number" min="0" step="1" value="${isFinite(POSTPLAN[p].periodMo)?POSTPLAN[p].periodMo:''}" placeholder="∞" style="width:80px;padding:5px;border:1px solid var(--line);border-radius:5px" onchange="POSTPLAN['${p}'].periodMo=(this.value===''?Infinity:+this.value);portalRefresh()"></label>
+  </div>`;
+  h+=`<h3>Per-step coding</h3>`;
+  h+=`<details style="margin:4px 0 10px"><summary style="cursor:pointer;font-weight:600;color:var(--accent)">Worked examples — read this first (a fictional programme &ldquo;Breathe-First&rdquo;)</summary><div class="small" style="line-height:1.55;margin:8px 0;max-width:900px">${BF_INTRO}</div></details>`;
+  h+=codingRulesHTML();
+  h+=`<p class="small muted" style="margin:2px 0 4px">Hover any heading, dropdown, or number box for its definition and level anchors. Click <b>example</b> on any step to see it coded in the fictional programme &ldquo;Breathe-First&rdquo;.</p>`;
+  h+=`<table class="grid codetbl"><thead><tr><th style="width:118px">Step</th>`+STEP_FIELDS.map(f=>`<th>${COL_LABEL[f]} <span class="cbinfo" onclick="showInfo(event,'${f}')" title="click for definition &amp; rules">&#9432;</span></th>`).join("")+`</tr></thead><tbody>`;
+  for(const s of STEPS){const c=CODING[p][s];const sc=STEP_CONST[s];
+    const tags=(sc.emergency?'<span class="tag">emg</span>':'')+(sc.list?' <span class="tag">list</span>':'')+(sc.advanced?' <span class="tag">adv</span>':'');
+    h+=`<tr><td><b>${s}</b> ${STEP_LABELS[s].replace(/^F\d+\s*/,'')}<br><span class="small muted">${tags} decay ${sc.decay}</span> <a class="exlink" onclick="showExample('${s}')" title="worked example (fictional programme)">example</a></td>`;
+    for(const f of STEP_FIELDS){
+      if(f==="concurrency"||f==="A"){ // numeric inputs: reviewer enters the raw count; engine bins to Low/Mod/High
+        const isConc=(f==="concurrency");
+        const cv=(typeof c[f]==='number')?c[f]:(isConc?1:'');
+        const band=isConc?concLevel(c[f]):aBand(c[f]);
+        const tip=isConc?"Number of signs / decisions integrated at the same instant. 1 → Low · 2 → Mod · ≥3 → High.":"Number of interacting elements / decisions / numeracy held at once. 1 → Low · 2–3 → Mod · ≥4 → High (Cowan ~4 chunks).";
+        const dflt=isConc?1:2;
+        h+=`<td><input type="number" min="1" max="9" step="1" value="${cv}" title="${tip}" style="width:46px;padding:3px 4px;border:1px solid var(--line);border-radius:4px" onchange="CODING['${p}']['${s}'].${f}=(this.value===''?${dflt}:+this.value);portalRefresh()"> <span class="tag" style="font-size:10px">${band}</span></td>`;
+      } else h+=`<td>${codeSelect(f,c[f],`CODING['${p}']['${s}'].${f}=this.value;portalRefresh()`)}</td>`;
+    }
+    h+=`</tr>`;
+    // Integrity-note sub-row — appears only when the step is coded Distorted or Minor. A single
+    // field recording WHAT is inconsistent / omitted (the observation, not a fix). It is the
+    // assessment text shown in the recommendations when a Distorted step is integrity-capped.
+    // Pre-populated for the presets; editable for any programme; carried in save/load.
+    if(c.F==="Distorted"||c.F==="Minor"){
+      const tone = c.F==="Distorted" ? "#fdecea" : "#fbf6e9";
+      h+=`<tr><td style="background:${tone};border-top:0"></td>
+        <td colspan="${STEP_FIELDS.length}" style="background:${tone};border-top:0;padding:6px 10px 8px">
+          <div class="small muted" style="margin-bottom:3px">↳ integrity note (${c.F}) — what is inconsistent / omitted:</div>
+          <textarea rows="2" placeholder="describe the inconsistency or omission you observed"
+            style="display:block;width:100%;box-sizing:border-box;font-size:12px;line-height:1.4;padding:5px 7px;border:1px solid var(--line);border-radius:4px;resize:vertical;font-family:inherit"
+            onchange="CODING['${p}']['${s}'].integrityNote=this.value;portalRefresh()">${esc(c.integrityNote||"")}</textarea>
+        </td></tr>`;
+    }}
+  h+=`</tbody></table>`;
+  h+=`<p class="small muted" style="margin-top:14px">Your coding updates live and is captured when you <b>Save</b>. Nothing is scored here — that is done by the analysis engine from your saved file.</p>`;
+  document.getElementById("progEditHost").innerHTML=h;
+}
+
+/* ---- Recommendations summary ---- */
+function renderRecs(){
+  const t=currentTime(), opt=readOpts(); let h="";
+  for(const p of progsToShow()){
+    h+=`<h3>${esc(p)}</h3>`;
+    h+=`<p class="small muted" style="margin:0 0 8px">Recommendations are cadre-specific — the same programme reaches each cadre differently. <b>Design fixes</b> improve the programme (and usually help every cadre); <b>scope decisions</b> are deployment choices for that cadre, not programme changes.</p>`;
+    for(const c of CADRE_ORDER){
+      const fixes=[], scopes=[]; let inScope=0, knowsFails=0;
+      for(const s of STEPS){
+        const ev=evaluateCell(p,c,s,t,opt,"A"); if(ev.referredOut) continue;
+        inScope++;
+        const d=diagnoseCell(ev); if(!d) continue;
+        if(ev.rating.reached==="Knows") knowsFails++;
+        const it=`<tr><td><b>${STEP_LABELS[s]}</b></td><td>${esc(d.why)}</td><td>${esc(d.lever)}</td></tr>`;
+        if(d.rung==="scope"||d.rung==="refer") scopes.push(it); else fixes.push(it);
+      }
+      const short=fixes.length+scopes.length;
+      h+=`<div style="margin:14px 0 2px;font-weight:600;font-size:15px">${esc(CADRES[c].label)}</div>`;
+      if(!short){
+        h+=`<p class="small" style="margin:2px 0;color:var(--pass)">Reaches a reliable Does for every in-scope step — no changes needed.</p>`;
+        continue;
+      }
+      // Programme–cadre headline: a cadre that cannot even hold the knowledge for several steps is
+      // mismatched (use a simpler programme); otherwise the programme just needs strengthening.
+      if(knowsFails>=3)
+        h+=`<div style="background:#fdecea;border-left:3px solid var(--b-vunlikely);padding:7px 10px;margin:3px 0;font-size:13px">⚠ <b>${esc(p)} is poorly matched to this cadre</b> — short on ${short} of ${inScope} in-scope steps, including ${knowsFails} the cadre cannot hold the knowledge for at all. The fixes below help, but for this cadre a simpler, better-matched programme (e.g. HBB for a frontline cadre) is the higher-leverage choice.</div>`;
+      else if(short/inScope>=0.5)
+        h+=`<div style="background:#fff6e6;border-left:3px solid var(--b-borderline);padding:7px 10px;margin:3px 0;font-size:13px">⚠ <b>${esc(p)} needs substantial strengthening for this cadre</b> — short on ${short} of ${inScope} in-scope steps, mostly fixable design gaps. Addressing the fixes below would lift most steps.</div>`;
+      if(fixes.length){
+        h+=`<div class="small muted" style="margin:4px 0 2px">Design fixes — improve the programme:</div>`;
+        h+=`<table class="grid"><thead><tr><th style="width:150px">Step</th><th>Falls short — why</th><th style="width:40%">Lever</th></tr></thead><tbody>${fixes.join("")}</tbody></table>`;
+      }
+      if(scopes.length){
+        h+=`<div class="small muted" style="margin:6px 0 2px">Scope decisions — deployment, not a programme fix:</div>`;
+        h+=`<table class="grid"><thead><tr><th style="width:150px">Step</th><th>Why out of reach</th><th style="width:40%">Decision</th></tr></thead><tbody>${scopes.join("")}</tbody></table>`;
+      }
+    }
+  }
+  document.getElementById("recsHost").innerHTML=h;
+}
+
+/* ---- Save / load ---- */
+function subset(o,keys){const r={};for(const k of keys)r[k]=o[k];return r;}
+function exportJSON(){
+  const rf=document.getElementById("raterId");
+  let rater=(rf&&rf.value||"").trim();
+  if(!rater){ rater=(prompt("Enter your rater ID / initials — used to name the file so returns can be matched:","")||"").trim(); if(rf&&rater) rf.value=rater; }
+  const safe=s=>String(s).replace(/[^A-Za-z0-9._-]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40);
+  const date=new Date().toISOString().slice(0,10);
+  const progPart=(PROGS.length===1)?safe(PROGS[0]):(PROGS.length+"progs");
+  const fname="NeoTRACE_"+(rater?safe(rater)+"_":"")+progPart+"_"+date+".json";
+  const data={format:"TRACE-portal", rater:rater||null, saved:new Date().toISOString(),
+    PROGS:PROGS.slice(), CODING:subset(CODING,PROGS), AID_FORM:subset(AID_FORM,PROGS), POSTPLAN:subset(POSTPLAN,PROGS),
+    CADRE_ORDER:CADRE_ORDER.slice(), CADRES:subset(CADRES,CADRE_ORDER)};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=fname; document.body.appendChild(a); a.click(); a.remove();
+}
+function importJSON(file){
+  const r=new FileReader();
+  r.onload=e=>{ try{
+    const d=JSON.parse(e.target.result);
+    if(!d.PROGS||!d.CADRE_ORDER) throw new Error("not a TRACE portal file");
+    PROGS.length=0; d.PROGS.forEach(p=>PROGS.push(p));
+    for(const k in CODING)delete CODING[k]; Object.assign(CODING,d.CODING);
+    for(const k in AID_FORM)delete AID_FORM[k]; Object.assign(AID_FORM,d.AID_FORM);
+    for(const k in POSTPLAN)delete POSTPLAN[k]; Object.assign(POSTPLAN,d.POSTPLAN);
+    CADRE_ORDER.length=0; d.CADRE_ORDER.forEach(c=>CADRE_ORDER.push(c));
+    for(const k in CADRES)delete CADRES[k]; Object.assign(CADRES,d.CADRES);
+    if(d.rater && document.getElementById("raterId")) document.getElementById("raterId").value=d.rater;
+    _curProg=PROGS[0]; portalRefresh();
+  }catch(err){ alert("Could not load file: "+err.message); } };
+  r.readAsText(file);
+}
+
+/* ---- master refresh ---- */
+function portalRefresh(rerenderEditors=true){
+  renderGrid(); renderRecs(); populateSelectors();
+  if(document.getElementById("view-drill").classList.contains("active")) renderDrill();
+  if(rerenderEditors){ renderCadreEditor(); renderProgrammeEditor(); }
+}
+
+function populateSelectors(){
+  const dp=document.getElementById("d_prog"), dc=document.getElementById("d_cadre"), ds=document.getElementById("d_step");
+  dp.innerHTML=PROGS.map(p=>`<option>${p}</option>`).join("");
+  dc.innerHTML=CADRE_ORDER.map(c=>`<option value="${c}">${CADRES[c].label}</option>`).join("");
+  ds.innerHTML=STEPS.map(s=>`<option value="${s}">${STEP_LABELS[s]}</option>`).join("");
+  [dp,dc,ds].forEach(el=>el.onchange=renderDrill);
+  // grid "programme to score" selector — defaults to the current programme, plus a compare-all option
+  const gp=document.getElementById("gridProg");
+  if(gp){ const cur = gp.value && (gp.value==="__all__"||PROGS.includes(gp.value)) ? gp.value : (PROGS.includes(_curProg)?_curProg:PROGS[0]);
+    gp.innerHTML=PROGS.map(p=>`<option ${p===cur?"selected":""}>${p}</option>`).join("")+`<option value="__all__" ${cur==="__all__"?"selected":""}>— All programmes (compare) —</option>`;
+  }
+}
+
+function refreshAll(){ portalRefresh(false); }
+
+const GUIDE_HTML = `
+<h2>How TRACE works</h2>
+<p class="small muted">Plain logic first. The learning-science frameworks behind each rule (Miller's ladder of competence, the Formula for Survival, cognitive-load theory, the Fitts stages of skill) are there as credentials, not as the way in — see <b>The science</b> tab for the full framework and references.</p>
+
+<h3>The one question</h3>
+<p>For every programme, cadre, and step, TRACE asks one thing: <b>can this kind of health worker be taught — and kept ready — to actually carry out this step when a baby needs it?</b> It is a question about the <i>training</i> only. Whether her workplace then lets her use that training (enough staff, working equipment, a senior to call) is a separate matter; TRACE notes it but does not score it.</p>
+
+<h3>The four questions every step has to pass</h3>
+<p>For each step we walk up four questions and report how far she reliably gets. (This ladder is Miller's: knows → knows how → shows how → does.)</p>
+<ol>
+<li><b>Does she have the knowledge?</b> She does if she can carry it in her head <i>or</i> read it off a job-aid she can actually use. Knowledge is the one thing a chart can hold for her.</li>
+<li><b>Can she turn it into the right decision?</b> If the decision is spelled out plainly, this is almost free — so a clear step printed on the chart still passes even if her memory is shaky.</li>
+<li><b>Can she physically do the skilled part?</b> This is the wall. <b>No chart can train her hands or her eyes</b> — only practice can. A basic skill comes with any practice; good bag-and-mask ventilation needs practice to a pass standard; intubation can't be built in a single course at all.</li>
+<li><b>Can she still do it for real, months later?</b> This comes out as the weaker of two things: whether the <i>skill</i> lasts (it fades, fast for high-pressure hands-on skills unless topped up by short, frequent refresher practice, and it isn't automatic the day the course ends) and whether the <i>knowledge</i> is to hand (in her head, or on the chart).</li>
+</ol>
+
+<h3>How each step is read</h3>
+<p>The four questions are applied to all eleven steps of newborn resuscitation, the same way each time. This table shows, for each step, what each question is really asking. The third column — the hands-on or perception part — is the one a chart can never carry; the last column is what tends to slip by six months.</p>
+<div style="overflow-x:auto">
+<table class="grid" style="font-size:12px;min-width:760px">
+<thead><tr>
+  <th style="width:130px">Step</th>
+  <th>What she must <b>know</b></th>
+  <th>The <b>rule / decision</b></th>
+  <th>The <b>hands-on / perception</b> part <span class="small muted">(a chart can't carry this)</span></th>
+  <th>What can <b>slip</b> at the real moment</th>
+</tr></thead>
+<tbody>
+  <tr><td><b>F0</b> Preparation</td><td>the equipment, environment and team to have ready before birth</td><td>check each item, assign roles; trigger = every birth</td><td>basic — assemble and check the bag-mask and suction</td><td>the checklist slips from memory unless it's on a usable chart; the assembly skill itself lasts; not time-pressured</td></tr>
+  <tr><td><b>F1</b> Initial assessment</td><td>the signs that a baby needs help</td><td>how to check each sign and when to act</td><td>reading the cue — trivial if it's “crying”, trained if it's “breathing / tone”</td><td>reading it correctly and fast under pressure</td></tr>
+  <tr><td><b>F2</b> Initial stabilisation</td><td>the steps: warm, dry, position, clear, stimulate</td><td>the order, and when each</td><td>basic handling — positioning, gentle suction, stimulation</td><td>the order slips from memory unless on the chart; the handling skill lasts</td></tr>
+  <tr><td><b>F3</b> Cord management</td><td>the cord-timing rule</td><td>delay 1–3 min normally; don't delay if the baby needs help</td><td>basic — clamp and cut</td><td>the rule slips from memory unless on the chart; the skill lasts</td></tr>
+  <tr><td><b>F4</b> Decide to ventilate</td><td>the trigger to start ventilation</td><td>apply it now — a clear yes / no</td><td>none — it's a decision</td><td>making the call fast; the criterion slips unless on the chart</td></tr>
+  <tr><td><b>F5</b> Effective ventilation</td><td>the settings: air, rate, seal, chest-rise target (NRP adds oxygen targets)</td><td>the technique</td><td><b>demanding</b> — effective bag-and-mask ventilation, the core hard skill</td><td>the skill fades fast without refreshers; the settings slip unless printed on the chart</td></tr>
+  <tr><td><b>F6</b> Correct failing ventilation</td><td>the corrective steps</td><td>which fix, when — read the failure and pick the fix</td><td><b>demanding</b> — spot no chest-rise, then correct</td><td>fades fast without refreshers</td></tr>
+  <tr><td><b>F7</b> Heart-rate assessment</td><td>the method and thresholds (count; 100 / 60)</td><td>assess and interpret</td><td>mixed — hear / feel the beat and count over a set time</td><td>doing it right and fast under pressure; method / thresholds slip unless on the chart</td></tr>
+  <tr><td><b>F8</b> Heart-rate escalation</td><td>the thresholds and what each triggers (&lt;100, &lt;60)</td><td>apply the threshold to escalate</td><td>none — it's a decision</td><td>making the call; an off-chart threshold (e.g. NSSK's &lt;60) can't be sustained</td></tr>
+  <tr><td><b>F9</b> Advanced support</td><td>compressions (3:1, depth), intubation, adrenaline dose, coordination</td><td>the method and coordination</td><td><b>advanced</b> — a single course can't build it (intubation especially)</td><td>reliable only for someone already current; fades fast — or it's referred out of scope</td></tr>
+  <tr><td><b>F10</b> Post-event / referral</td><td>monitoring, referral criteria, essential newborn care</td><td>monitoring intervals; when and how to refer; safe transport</td><td>basic — monitoring and safe-transport setup</td><td>low fade; intervals slip unless they're consistent and on the chart</td></tr>
+</tbody>
+</table>
+</div>
+<p class="small muted">The same canonical step can demand different things in different programmes — F1 is a trivial “crying?” check in NSSK and HBB but a trained “breathing / tone” judgement in NRP. That's the tool working, not an inconsistency.</p>
+
+<h3>Why the job-aid matters, and what it can carry</h3>
+<p>A good chart is one of the most powerful levers a programme has. It lets a worker keep the right knowledge at the bedside instead of carrying all of it in her head — which matters most in the months after the course, and most of all under the pressure of a real birth. The skill of chart design is knowing what to put on it, and putting it there in a form the worker can actually use.</p>
+
+<p><b>What a chart can encode.</b> Each step needs a particular kind of knowledge, and a well-made chart can carry any of these:</p>
+<ul>
+<li><b>Decision cues and thresholds</b> — the sign or number that fires an action: when to start ventilation, the heart-rate cut-offs that trigger escalation.</li>
+<li><b>Parameters</b> — the precise values to apply: the ventilation rate, oxygen targets, the adrenaline dose, monitoring intervals.</li>
+<li><b>Sequences</b> — the steps in order: the stabilisation routine, the steps to correct a failing ventilation.</li>
+<li><b>Checklists</b> — what to have and check so nothing is missed: the equipment to lay out before every birth.</li>
+</ul>
+<p>A chart helps a given step only if it actually carries <i>that</i> step's kind of knowledge. Printing the oxygen targets beside the ventilation step genuinely helps; a line that just says “take corrective steps” without listing them does not.</p>
+
+<p><b>Representational fit — the form has to match the reader.</b> The same content can be drawn as pictures or written as dense text, and that choice decides who it works for. A pictographic, well-spaced, colour-coded chart carries a lower-literacy worker; the identical content as a dense block of single-colour text does not — it adds to her load and is hard to navigate when seconds matter. <b>Representational fit</b> is this match between how the chart presents its content and what a particular cadre can read and act on at speed. A chart that is technically present but not a fit for the worker carries nothing for her — which is why the same chart can be an asset for a doctor and a liability for an ANM.</p>
+
+<p><b>Finding the right step in time.</b> In an emergency she has to land on the right step instantly. When each step sits in its own clearly labelled block she can; when several functions are crammed into one box, the content may be there but she can't reach it under the clock. Easy navigation is part of what makes a chart usable, not a cosmetic extra.</p>
+
+<p><b>The checklist effect.</b> For a step with several items, doing it reliably means missing none — and memory alone drops items, for everyone, not only weaker cadres. A full checklist printed on a usable chart is what makes complete, dependable performance possible; a partial cue helps a little; with nothing on the chart the step rests on memory, so even a capable worker can't be counted on to get it complete every time.</p>
+
+<p><b>The one thing a chart cannot carry</b> is the skill itself. It can hold every number, cue, sequence and list, but it cannot ventilate a baby — the hands and eyes are built only by practice and kept only by refreshers. So a chart closes <i>knowledge</i> gaps and practice closes <i>skill</i> gaps. That gives a designer the single most useful read: when a step falls short, is it a knowing problem (improve the chart) or a doing problem (add practice and refreshers)? The recommendations say which.</p>
+
+<h3>Reading it twice in time</h3>
+<p>Every cell is read at the end of the course and again about six months later. The difference between the two is the whole refresher story: a ventilation skill that's built but not yet automatic looks shaky at course-end and becomes reliable by six months <i>if</i> there's short, frequent refresher practice — and slides backwards without it.</p>
+
+<h3>Two honest boundaries</h3>
+<ul>
+<li><b>When the materials contradict themselves.</b> If a programme's own documents get a step wrong (a threshold dropped from the teaching slides), even a capable worker can't reliably do it right — so that step can't read as fully reliable. A faithful simplification (a plain "improving / not improving" instead of a number) is <i>not</i> penalised; that's good design, not a defect.</li>
+<li><b>Prior clinical experience</b> is real and does affect trainability, but it cuts both ways: it sharpens the eye and frees attention, yet old wrong habits take effort to unlearn. Those pull in opposite directions through different routes and don't add up to a single number, so we record experience as context rather than score it.</li>
+</ul>
+
+<h3>What it is not</h3>
+<p>TRACE is not a clinical-quality grade, and not a check of whether a programme matches the latest guideline (that's reported separately). A few of its thresholds — how much a step has to ask before it overwhelms a given reader, how much practice counts as building a hard skill — are sensible judgement calls, not exact constants. So we tested how much the picture wobbles when each is nudged by one step. The <b>reading-level</b> coding matters most (it moves a quarter to a third of the cells); the others barely move it; about <b>6 in 10 cells stay put</b>, and the ones that don't are shown as borderline rather than stated as fact.</p>
+
+<h3>Reading the grid</h3>
+<p>Each cell shows how far up the four questions she reliably gets, at the time you've selected. The <b>colour runs from brown</b> (she only gets as far as knowing the step) through <b>orange and amber</b> up to <b>green</b> (she can do it for real) — green is the goal, and there is deliberately <b>no red</b>, because reaching "knows it" is partial credit, not a failure. The light-vs-dark green split appears only at the top step: dark = does it reliably, light = does it but not yet reliably. A <b>hatched cell</b> means the step is referred out of this cadre's job — not a failure. Click any cell for the plain step-by-step reasoning. The <b>recommendations</b> turn each shortfall into the one change that would most help.</p>
+
+<p class="small muted" style="margin-top:14px"><b>How we checked it.</b> The engine reproduces seven sanity checks (documented in the technical files): well-supported ventilation becomes reliable and stays reliable with refreshers; the same step slips back within six months without them, while the knowledge holds; practice to a pass standard makes a basic skill reliable even for a lower-trained worker; a high-pressure hands-on skill isn't automatic the day the course ends; intubation can't be built in one course; a step the materials get wrong can't read as fully reliable while a faithful simplification can; and a checklist that isn't printed can't count as reliable preparation.</p>
+`;
+
+function renderGuide(){ document.getElementById("guideHost").innerHTML = GUIDE_HTML; }
+
+const SCIENCE_HTML = `
+<h2>The science behind TRACE</h2>
+<p class="small muted">TRACE's structure is <i>derived from</i> established learning-science frameworks, chosen by a pre-specified method — it is not an invented set of rules. This section sets out the framework spine, the mechanism of the climb, how the frameworks were selected, and the references.</p>
+
+<h3>What TRACE measures</h3>
+<p>Whether a baby survives birth asphyxia depends on three things multiplied together — the <b>Formula for Survival</b>: the medical science being right, the training being effective, and the workplace letting it happen. TRACE appraises only the middle term, <b>educational efficiency</b>, holding the science (guideline correctness) and the local implementation (staff, equipment, supervision) constant. Those are reported as context, never scored.</p>
+
+<h3>The framework spine</h3>
+<p>No single framework does the whole job, so TRACE uses a small stack, each layer owning one role:</p>
+<ul>
+<li><b>Macro frame — Formula for Survival</b> (Søreide et al., 2013): survival = medical science × educational efficiency × local implementation. TRACE scores only the middle term.</li>
+<li><b>Outcome construct — the Cambridge Model</b> (Rethans et al., 2002): separates trained capability from system influences and transient individual state, isolating exactly the slice TRACE predicts.</li>
+<li><b>The ladder — Miller's pyramid</b> (Miller, 1990): <i>knows → knows how → shows how → does</i>. The rungs on which TRACE locates where a step stalls.</li>
+<li><b>The climb-and-decay engine</b>: how a worker moves up and slips back — skill acquisition and proceduralisation (Fitts & Posner, 1967; Anderson, 1982), deliberate practice and simulation-based mastery (Ericsson, 1993; McGaghie, 2014), cognitive load and the expertise-reversal effect (Sweller, 1988; Kalyuga et al., 2003), and skill decay held up by spaced / low-dose high-frequency practice (Arthur et al., 1998; Mduma et al., 2015).</li>
+<li><b>The cadre dimension</b> (aptitude–treatment interaction, Cronbach & Snow, 1977): why the same materials carry different cadres to different rungs — the cliff.</li>
+</ul>
+
+<h3>How the climb works — and where each rule comes from</h3>
+<ul>
+<li><b>Knowing → deciding</b> is governed by <b>cognitive load</b> (Sweller): the more elements and numeracy a step demands relative to the worker's capacity, the harder it is. A good chart lowers that load and a clearly-stated decision makes applying it almost free — but the same chart that helps a novice can slow an expert (expertise-reversal, Kalyuga). Reasoning and numeracy are near-stable aptitudes a short course can't raise, so where they bind, the honest fix is to simplify the step, not train harder.</li>
+<li><b>Deciding → showing the skill</b> is the wall: hands and eyes are built only by practice (Fitts & Posner; Ericsson), never by a chart.</li>
+<li><b>Showing → doing it for real</b> needs two further things. It must be <b>automatic</b>, because under time pressure there is no time to read or reason (Fitts' autonomous stage; Rasmussen's skill-based level, 1983; recognition-primed decision-making, Klein, 1998; and acute stress impairs working memory most under time pressure, Arnsten, 2009). And it must <b>survive the interval</b> since training — skills decay, fastest for complex, rarely-used ones (Arthur et al.), held up only by short, frequent refreshers. The decisive field evidence: a one-day course alone did not improve clinical care, whereas brief weekly on-site simulation cut 24-hour newborn mortality (Mduma et al., 2015).</li>
+</ul>
+
+<h3>Why it is read twice in time</h3>
+<p>Attainment is a trajectory, not a fixed point, so every cell is read at the end of the course and again about six months later under the programme's real refresher schedule. A cell that falls short then resolves to one of the two messages a designer most needs: <i>"no refresher cadence will reach it — redesign the binding lever"</i>, or <i>"reachable, but needs a refresh every N weeks."</i></p>
+
+<h3>Where the job-aid sits</h3>
+<p>On this spine the chart is a <b>learning-and-retention</b> aid: it scaffolds knowing and deciding (a worked-example effect, Sweller/Mayer) and can cue a not-yet-automatic worker who knows where to look (Rasmussen's rule-based level). It cannot supply an automatic skill or a second pair of hands. The earlier error this structure corrects was placing chart quality inside "doing" — blaming a poor chart for, or crediting a good chart with, performance that actually rests on skill and staffing.</p>
+
+<h3>How the frameworks were chosen</h3>
+<p>Selection followed <b>best-fit framework synthesis</b> (Carroll et al., 2013), adapted for instrument design: an a-priori spine (Miller, inside the educational-efficiency term), purposive identification of established candidate frameworks for each role, and selection against pre-specified criteria — (1) established and validated; (2) a direct construct-to-function fit; (3) domain-appropriate; (4) operationalisable from a programme's documents; (5) parsimonious; (6) separable from clinical correctness. Where independent frameworks converge on the same construct — automaticity-under-stress appears in Fitts–Posner, Rasmussen, Anderson and Klein; cognitive load in Sweller and Mayer — that convergence is treated as evidence the construct is the right one. Candidate identification was purposive and theory-led, not an exhaustive systematic review; the audit trail is kept and the set is revisable by design.</p>
+
+<h3>What is new in TRACE</h3>
+<p>TRACE does not claim a new law of cognition — the mechanisms above are all established. What is new is the synthesis and what it is built into:</p>
+<ul>
+<li><b>The synthesis.</b> No one has assembled these particular frameworks — the Formula for Survival, Miller's ladder, cognitive load, the automaticity stack (Fitts–Posner, Rasmussen, Anderson), skill decay and low-dose high-frequency practice, and cadre capacity — into one coherent spine aimed at this question.</li>
+<li><b>The instrument.</b> That spine is operationalised into a reproducible, document-based appraisal that runs per step, per cadre and across time, with explicit scoring, <i>before</i> a programme is scaled. The instrument itself is the new object.</li>
+<li><b>The composite constructs.</b> Each rests on a parent theory but does not exist as such until built: the asymmetric climb (knowledge can be carried, skill cannot); the two-part "does it for real" (the weaker of the surviving skill and the available knowledge); the single trainability dial (a step's perceptual-motor demand); the representational-fit gate (chart form against cadre literacy); the objective navigation / target-acquisition measure; the integrity rule (a distortion degrades the step's trainable knowledge); and the checklist-completeness gate.</li>
+<li><b>The demonstration.</b> Running it on real programmes (NSSK, HBB, NRP) to generate refinement guidance at design stage — a use no one has put these theories to.</li>
+</ul>
+<p>This is the contribution a framework-synthesis instrument is meant to make: the assembly, its formalisation, and its application — not a new primitive.</p>
+
+<h3>Two predictions the framework generates — to be tested</h3>
+<p>The synthesis also yields two propositions we state as hypotheses, not as findings:</p>
+
+<p><b>1. For an emergency skill, the chart is a memory-building and reference tool, not an in-the-moment crutch.</b> The general "cognitive offloading" worry — that always having information to hand makes you remember it less (Sparrow et al., 2011) — only really applies to things you stop and look up. In a time-critical resuscitation that splits in two:</p>
+<ul>
+<li><b>Parameters and reference values</b> (ventilation settings, drug doses, heart-rate thresholds, monitoring intervals) are a genuine look-up at the moment of need, and TRACE credits the chart as exactly that. This is the one place the dependence concern applies — and it is the chart's intended job.</li>
+<li><b>Time-critical motor and decision steps</b> are different: in the heat of the moment there is no time to read the chart, and a frontline worker is often alone, with no second person to read it aloud. The emergency-aid literature bears this out — cognitive aids improve resuscitation chiefly through a dedicated reader or through prior familiarity, real-time use by a lone performer is low, and familiarity built beforehand is the precondition for any benefit (Marshall, 2013; Goldhaber-Fiebert & Howard, 2013). For these steps the chart cannot be what the hands lean on mid-event; its contribution is what it builds <i>beforehand</i> — helping commit the sequence to memory during learning and rehearsal. The dependence worry does not bite here, because you cannot offload what you have no time to read.</li>
+</ul>
+<p>This is consistent with how the engine already treats the aid: it sustains the knowledge component, never the skill.</p>
+
+<p><b>2. The right breadth of a programme matches what the cadre can reliably deliver.</b> Teaching too much — steps a given cadre can't reliably perform — can crowd out the basics; teaching too little wastes a capable cadre. The design that saves the most lives covers as much of the guideline as that cadre can reliably carry out. <b>HBB</b> illustrates good scope-matching: it deliberately stops at ventilation and refers the advanced steps out, fitting a frontline birth attendant. <b>NRP</b> carries the full algorithm — intubation, chest compressions, adrenaline — which fits a hospital team but would over-scope a lone ANM, who can't be made reliable on intubation in a single course (TRACE shows that step stalling at "show the skill" for her). The mirror error is under-scoping — training a physician only on HBB leaves capability, and lives, on the table.</p>
+
+<h3>Validation status</h3>
+<p>At this stage the content-validity argument rests on the rigour of the derivation, the convergence of independent frameworks, and a worked demonstration on three real programmes (NSSK, HBB, NRP). Expert content validation by an independent panel is the next stage; <b>predictive validation</b> — whether flagged designs produce worse bedside performance, and whether refinement improves it — is the ultimate test and is named as future work. TRACE is presented as theory-guided; empirical validation is the subsequent maturity stage, not a claim made here.</p>
+
+<h3>References</h3>
+<ol class="refs">
+<li>Søreide E, Morrison L, Hillman K, et al. The formula for survival in resuscitation. <i>Resuscitation.</i> 2013;84(11):1487–1493.</li>
+<li>Rethans JJ, Norcini JJ, Barón-Maldonado M, et al. The relationship between competence and performance: implications for assessing practice performance. <i>Med Educ.</i> 2002;36(10):901–909.</li>
+<li>Miller GE. The assessment of clinical skills/competence/performance. <i>Acad Med.</i> 1990;65(9 Suppl):S63–S67.</li>
+<li>Fitts PM, Posner MI. <i>Human Performance.</i> Brooks/Cole; 1967.</li>
+<li>Anderson JR. Acquisition of cognitive skill. <i>Psychol Rev.</i> 1982;89(4):369–406.</li>
+<li>Rasmussen J. Skills, rules, and knowledge; signals, signs, and symbols, and other distinctions in human performance models. <i>IEEE Trans Syst Man Cybern.</i> 1983;SMC-13(3):257–266.</li>
+<li>Sweller J. Cognitive load during problem solving: effects on learning. <i>Cogn Sci.</i> 1988;12(2):257–285.</li>
+<li>Kalyuga S, Ayres P, Chandler P, Sweller J. The expertise reversal effect. <i>Educ Psychol.</i> 2003;38(1):23–31.</li>
+<li>Ericsson KA, Krampe RT, Tesch-Römer C. The role of deliberate practice in the acquisition of expert performance. <i>Psychol Rev.</i> 1993;100(3):363–406.</li>
+<li>McGaghie WC, Issenberg SB, Barsuk JH, Wayne DB. A critical review of simulation-based mastery learning with translational outcomes. <i>Med Educ.</i> 2014;48(4):375–385.</li>
+<li>Arthur W Jr, Bennett W, Stanush PL, McNelly TL. Factors that influence skill decay and retention: a quantitative review and analysis. <i>Hum Perform.</i> 1998;11(1):57–101.</li>
+<li>Mduma E, Ersdal H, Svensen E, et al. Frequent brief on-site simulation training and reduction in 24-h neonatal mortality — an educational intervention study. <i>Resuscitation.</i> 2015;93:1–7.</li>
+<li>Baldwin TT, Ford JK. Transfer of training: a review and directions for future research. <i>Pers Psychol.</i> 1988;41(1):63–105.</li>
+<li>Cronbach LJ, Snow RE. <i>Aptitudes and Instructional Methods.</i> Irvington; 1977.</li>
+<li>Klein G. <i>Sources of Power: How People Make Decisions.</i> MIT Press; 1998.</li>
+<li>Arnsten AFT. Stress signalling pathways that impair prefrontal cortex structure and function. <i>Nat Rev Neurosci.</i> 2009;10(6):410–422.</li>
+<li>Goldhaber-Fiebert SN, Howard SK. Implementing emergency manuals: can cognitive aids help translate best practices for patient care during acute events? <i>Anesth Analg.</i> 2013;117(5):1149–1161.</li>
+<li>Arriaga AF, Bader AM, Wong JM, et al. Simulation-based trial of surgical-crisis checklists. <i>N Engl J Med.</i> 2013;368(3):246–253.</li>
+<li>Shiffman RN, Dixon J, Brandt C, et al. The GuideLine Implementability Appraisal (GLIA): development of an instrument to identify obstacles to guideline implementation. <i>BMC Med Inform Decis Mak.</i> 2005;5:23.</li>
+<li>Carroll C, Booth A, Leaviss J, Rick J. "Best fit" framework synthesis: refining the method. <i>BMC Med Res Methodol.</i> 2013;13:37.</li>
+<li>Marshall S. The use of cognitive aids during emergencies in anesthesia: a review of the literature. <i>Anesth Analg.</i> 2013;117(5):1162–1171.</li>
+<li>Sparrow B, Liu J, Wegner DM. Google effects on memory: cognitive consequences of having information at our fingertips. <i>Science.</i> 2011;333(6043):776–778.</li>
+</ol>
+`;
+function renderScience(){ document.getElementById("scienceHost").innerHTML = SCIENCE_HTML; }
+
+populateSelectors();
+renderGrid();
+renderRecs();
+renderProgrammeEditor();
+renderCadreEditor();
+renderGuide();
+
+/* Shared scoring link: open to a BLANK sheet (one empty programme to code), not the preset
+   programmes. Done on DOMContentLoaded so the synchronous render above still seeds the preset
+   state for headless verification / analysis, while a real browser ends up on a blank programme.
+   The cadres (worker types) are kept so every expert scores against the same set. The preset
+   coding remains defined in the source for our reference; this only sets the opening state. */
+function startBlankSheet(){
+  PROGS.length=0;
+  for(const k in CODING) delete CODING[k];
+  for(const k in AID_FORM) delete AID_FORM[k];
+  for(const k in POSTPLAN) delete POSTPLAN[k];
+  const nm=addProgramme(); renameProgramme(nm,"Programme to score"); _curProg=PROGS[0];
+  populateSelectors(); renderGrid(); renderRecs(); renderProgrammeEditor(); renderCadreEditor();
+}
+document.addEventListener("DOMContentLoaded", startBlankSheet);
+
+/* expose engine for console / Python cross-check */
+window.TRACE={evaluateCell,bandOf,cadreDerived,CODING,CADRES,STEP_CONST,POSTPLAN,renderVerify};
+</script>
+</body>
+</html>
